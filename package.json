@@ -1,0 +1,22 @@
+{
+  "name": "masa-oyunlari",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,green \"pnpm --filter @masa/server dev\" \"pnpm --filter @masa/client dev\"",
+    "build": "pnpm --filter @masa/shared build && pnpm --filter @masa/server build && pnpm --filter @masa/client build",
+    "typecheck": "tsc -b shared server client --verbose",
+    "test": "pnpm --filter @masa/server test --run",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "typescript": "^5.7.0",
+    "eslint": "^9.17.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "prettier": "^3.4.0"
+  }
+}
