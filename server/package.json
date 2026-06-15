@@ -1,0 +1,22 @@
+{
+  "name": "@masa/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -b",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@masa/shared": "workspace:*",
+    "socket.io": "^4.8.0",
+    "zod": "^3.24.0",
+    "pino": "^9.5.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.10.0"
+  }
+}
