@@ -9,6 +9,11 @@ export default [
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: { parser, parserOptions: { sourceType: "module" } },
     plugins: { "@typescript-eslint": tseslint },
-    rules: {},
+    // Enforce two non-negotiable CLAUDE.md rules at lint time:
+    // no `any`, and structured logger instead of console.
+    rules: {
+      "@typescript-eslint/no-explicit-any": "error",
+      "no-console": "error",
+    },
   },
 ];

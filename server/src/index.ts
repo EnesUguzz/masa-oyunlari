@@ -27,6 +27,10 @@ const io = new Server(httpServer, {
 const connections = new ConnectionManager(clock, config.gracePeriodMs, (playerId: PlayerId) => {
   logger.info({ playerId }, "grace period elapsed; player considered gone");
   // In this slice there is no game; nothing to clean up beyond connection maps.
+  // TODO (Okey slice): on expiry this should rooms.leaveRoom(...) and rebroadcast.
+  // It deliberately does NOT today, because reconnect-restore relies on the seat
+  // surviving (findRoomByPlayer). Resolve both together: expire the seat AND make
+  // reconnect reattach by token membership, or reload-reconnect will break.
 });
 
 registerHandlers({ io, registry, rooms, connections, logger });
