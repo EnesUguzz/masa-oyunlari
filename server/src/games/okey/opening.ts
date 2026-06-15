@@ -6,7 +6,7 @@ import { isPair } from "./pairs.js";
 import { meldsTotal } from "./points.js";
 import { InvalidMoveError } from "../../core/errors/index.js";
 import type { OkeyGameState } from "./game-state.js";
-import { AlreadyOpenedError, OpeningThresholdNotMetError } from "./errors.js";
+import { AlreadyOpenedError, OpeningThresholdNotMetError, NotOpenedError, ModeLockedError } from "./errors.js";
 import {
   current, requirePhase, removeTilesFromHand, consumeFloorIfLaid, recordFeeding, meldThreshold, pairThreshold,
 } from "./helpers.js";
@@ -100,4 +100,44 @@ export function applyOpenPairs(s: OkeyGameState, pairs: OkeyTile[][]): void {
     s.status = "void";
     s.outcome = buildVoidOutcome(s);
   }
+}
+
+export function applyProcessToMeld(s: OkeyGameState, meldId: string, tiles: OkeyTile[]): void {
+  requirePhase(s, "act");
+  const me = current(s);
+  if (!me.opened) throw new NotOpenedError();
+  if (tiles.length === 0) throw new InvalidMoveError("no tiles to process");
+  const meld = s.tableMelds.find((m) => m.id === meldId);
+  if (!meld) throw new InvalidMoveError("no such meld on the table");
+  if (meld.kind === "pair") throw new InvalidMoveError("cannot process onto a pair");
+
+  const candidate = [...meld.tiles, ...tiles];
+  if (!isValidMeld(candidate, s.okey)) {
+    throw new InvalidMoveError("processed tiles do not form a valid meld");
+  }
+  removeTilesFromHand(me, tiles);
+  consumeFloorIfLaid(s, tiles);
+  meld.tiles = candidate;
+  meld.kind = meldKind(candidate, s.okey);
+}
+
+export function applyOpenNewMeld(s: OkeyGameState, tiles: OkeyTile[]): void {
+  requirePhase(s, "act");
+  const me = current(s);
+  if (!me.opened) throw new NotOpenedError();
+  if (me.openMode === "pairs") {
+    if (tiles.length !== 2 || !isPair(tiles[0]!, tiles[1]!, s.okey)) {
+      throw new ModeLockedError("pairs mode: a new group must be a valid pair");
+    }
+    removeTilesFromHand(me, tiles);
+    consumeFloorIfLaid(s, tiles);
+    s.tableMelds.push({ id: String(s.meldSeq++), owner: me.seat, kind: "pair", tiles });
+    return;
+  }
+  if (!isValidMeld(tiles, s.okey)) {
+    throw new InvalidMoveError("tiles are not a valid run or set");
+  }
+  removeTilesFromHand(me, tiles);
+  consumeFloorIfLaid(s, tiles);
+  s.tableMelds.push({ id: String(s.meldSeq++), owner: me.seat, kind: meldKind(tiles, s.okey), tiles });
 }
