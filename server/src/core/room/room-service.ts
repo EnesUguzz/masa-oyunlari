@@ -52,6 +52,10 @@ export class RoomService {
     return room;
   }
 
+  getRoom(code: RoomCode): Room | undefined {
+    return this.repo.get(code);
+  }
+
   private generateUniqueCode(): RoomCode {
     for (let attempt = 0; attempt < 1000; attempt++) {
       let code = "";
