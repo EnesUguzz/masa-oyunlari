@@ -23,6 +23,10 @@ export class ConnectionManager {
       this.clock.clearTimeout(pending);
       this.graceTimers.delete(playerId);
     }
+    // Evict any prior socket still bound to this player. In the usual
+    // disconnect->grace->reconnect flow handleDisconnect already cleared it;
+    // this guards the direct-rebind case (e.g. a second tab attaching without
+    // the first socket having disconnected) so the stale socket can't resolve.
     const previousSocket = this.playerToSocket.get(playerId);
     if (previousSocket) this.socketToPlayer.delete(previousSocket);
 
