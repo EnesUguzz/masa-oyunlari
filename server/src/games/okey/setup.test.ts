@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { PlayerId } from "@masa/shared";
 import { SeededRng } from "../../core/rng.js";
 import { makeConfig } from "./game-config.js";
 import { createHand } from "./setup.js";
 import { isNumbered } from "./tile.js";
 
 const config = makeConfig({ pairing: "esli", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 });
-const players = ["p0", "p1", "p2", "p3"];
+const players = ["p0", "p1", "p2", "p3"] as PlayerId[];
 
 describe("createHand", () => {
   it("deals 22/21/21/21, a numbered indicator, 20 draw pile", () => {
@@ -35,6 +36,6 @@ describe("createHand", () => {
   });
 
   it("rejects a player list that is not exactly 4", () => {
-    expect(() => createHand(config, ["a", "b", "c"], new SeededRng(1))).toThrow();
+    expect(() => createHand(config, ["a", "b", "c"] as PlayerId[], new SeededRng(1))).toThrow();
   });
 });

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { PlayerId } from "@masa/shared";
 import { SeededRng } from "../../core/rng.js";
 import { makeConfig } from "./game-config.js";
 import { createHand } from "./setup.js";
 import { applyMove } from "./apply.js";
 
 const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 });
-const players = ["p0", "p1", "p2", "p3"];
+const players = ["p0", "p1", "p2", "p3"] as PlayerId[];
 
 describe("applyMove draw phase", () => {
   it("drawFromPile moves one tile to the hand and enters act phase", () => {
