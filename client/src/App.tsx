@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PlayerView } from "@masa/shared";
 import { GameSocket } from "./net/socket.js";
 import { loadToken, saveToken } from "./token.js";
@@ -12,16 +12,17 @@ export function App() {
   const [screen, setScreen] = useState<Screen>("nickname");
   const [view, setView] = useState<PlayerView | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const nicknameRef = useRef<string>("");
 
   const socket = useMemo(
     () =>
       new GameSocket({
         onIdentified: ({ token }) => {
           saveToken(token);
+          setError(null); // a successful action clears any stale error banner
           setScreen((s) => (s === "nickname" ? "lobby" : s));
         },
         onRoomState: (v) => {
+          setError(null);
           setView(v);
           setScreen("room");
         },
@@ -35,13 +36,11 @@ export function App() {
     const token = loadToken();
     const nickname = localStorage.getItem("masa.nickname");
     if (token && nickname) {
-      nicknameRef.current = nickname;
       socket.identify({ token, nickname });
     }
   }, [socket]);
 
   const handleNickname = (nickname: string) => {
-    nicknameRef.current = nickname;
     localStorage.setItem("masa.nickname", nickname);
     socket.identify({ token: loadToken(), nickname });
   };
