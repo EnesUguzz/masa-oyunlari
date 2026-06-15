@@ -31,6 +31,11 @@ export class FakeClock implements Clock {
     this.timers.delete(handle);
   }
 
+  /**
+   * Advance virtual time by `ms`, firing every timer whose deadline is now due.
+   * Timers scheduled *during* a callback in this call are deferred to the next
+   * advance() (call advance(0) to flush them) — this avoids unbounded cascades.
+   */
   advance(ms: number): void {
     this.now += ms;
     for (const [handle, timer] of [...this.timers.entries()]) {
