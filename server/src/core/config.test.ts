@@ -26,4 +26,13 @@ describe("loadConfig", () => {
   it("throws on a non-numeric PORT", () => {
     expect(() => loadConfig({ PORT: "abc" })).toThrow();
   });
+
+  it("treats empty/whitespace env vars as absent (uses default)", () => {
+    expect(loadConfig({ PORT: "" }).port).toBe(3001);
+    expect(loadConfig({ TURN_TIMEOUT_MS: "   " }).turnTimeoutMs).toBe(60000);
+  });
+
+  it("names the offending variable in the error message", () => {
+    expect(() => loadConfig({ GRACE_PERIOD_MS: "nope" })).toThrow(/GRACE_PERIOD_MS/);
+  });
 });
