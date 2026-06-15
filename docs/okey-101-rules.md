@@ -4,10 +4,10 @@
 > buradan beslenir. Yeni karar verildikçe güncellenir.
 >
 > **Önemli:** Okey 101'in bölgesel / "ev kuralı" varyasyonları vardır. Aşağıda
-> **(KESİN)** = kaynaklar arası konsensüs + onaylanmış; **(EV KURALI — ONAY BEKLİYOR)**
-> = web kaynakları çelişiyor ya da varyanta bağlı, oyuncunun (sen) kendi oynadığın
-> sürüme göre netleştirmesi gereken noktalar. Bu ikincileri 1b/1c brainstorm'unda
-> kilitleyip (KESİN)'e taşıyacağız.
+> **(KESİN)** = kaynaklar arası konsensüs + onaylanmış; **(KARARLAŞTIRILDI)** = oyuncu
+> (sen) bu sürüm için kararını verdi, ilgili aşamada doğrulanacak; **(EV KURALI — ONAY
+> BEKLİYOR)** = web kaynakları çelişiyor ya da varyanta bağlı, hâlâ netleştirilmesi
+> gereken noktalar. İkinci/üçüncüleri 1b/1c brainstorm'unda kilitleyip (KESİN)'e taşıyacağız.
 >
 > Araştırma kaynakları dosyanın en altında.
 
@@ -81,6 +81,9 @@
 - **Yerden okey alma cezası = 101:** Okey taşı yalnız izinli durumda yerden alınır;
   kural dışı alınırsa **101 ceza**.
 - **Eksik puanla (101 altı) açma:** Açılan taşlar **geri alınır + 101 ceza**.
+- **Elde okey kalma cezası = +101 (KESİN — koşullu):** Bir oyuncu **el açmışsa** ve el
+  sonunda elinde **okey (wildcard)** tutuyorsa **+101 ek ceza** alır. **El açmamış**
+  oyuncunun elinde okey kalması ceza getirmez (zaten açmama cezasını alır).
 
 ## Puanlama (kaynak konsensüsü; kesin kilitleme 1c'de)
 
@@ -100,34 +103,51 @@
 
 ---
 
+## Oyun modları ve oyun sonu (KARARLAŞTIRILDI)
+
+- **Mod matrisi:** `{eşsiz, eşli} × {katlamasız, katlamalı}` + eşe-katlamalı/eşe-katlamasız.
+- **Maç sonu:** oda kurucusu **7 / 11 / 21 el** seçer (kullanıcı seçimli). El sonunda
+  en düşük toplam ceza puanı kazanır. (Baraj/hedef-puan modu şimdilik yok.)
+
+## Çiftle bitirme (KARARLAŞTIRILDI — geçici, 1b'de doğrulanacak)
+
+- **Çiftlerle DOĞRUDAN bitilmez.** Çift modunda da bitiş şu akışla olur: oyuncu
+  **çiftlerini açar**, **işler** (kendi/masadaki perlere taş ekler), ve **son taşını
+  atarak** eli bitirir. Yani "elini tamamen çifte bölüp anında bitme" yok; açış + işleme
+  + son-taş-atma gerekir.
+- > Bu kuralı ileride inceleyip değiştirmek istersen söyle (oyuncu notu).
+
 ## EV KURALI — ONAY BEKLİYOR (1b'de kilitlenecek: tur akışı / oyun-durumu)
 
-- **Çiftle bitirme tam mekaniği — NETLEŞTİRİLMELİ.** Web kaynakları "14 taş / 8 çift"
-  diyor, ama bu **standart Çift Okey'den (14 taşlı el) karışmış** bir rakam; 101'de el
-  **21** taş (bitişte çekince 22). 21 tek sayı olduğundan "hepsi çift" matematiksel
-  olarak doğrudan oturmuyor. **Senin oynadığın sürümde** çiftle nasıl bitilir?
-  (kaç çift / son taş atılır mı / okeyle çift tamamlama). → **senin kararın**.
 - **İşleme detayları:** atılan taşın masadaki hangi perlere (alttan/üstten) eklenebildiği,
-  "işlek" sayılma anı.
+  "işlek" sayılma anı; çift modunda işleme akışının tam tanımı.
 - **Gösterge / okey'in elde özel kullanımı**, ilk el açıldığında göstergeyi çifte bağlama
   (+1 kuralı — senin daha önce belirttiğin).
 - Çekme/atma sırası ve "son taş" bitiş anının tam tanımı.
 
-## EV KURALI — ONAY BEKLİYOR (1c'de kilitlenecek: puanlama & varyantlar)
+## Eşli (takımlı) puanlama (KARARLAŞTIRILDI — çalışma modeli, 1c'de doğrulanacak)
 
-- **Çarpan merdiveni:** elden/okey/çift/çift-okey bitişlerin **kesin** kat sayıları
-  (kaynaklar 2× ve 4× üzerinde büyük ölçüde birleşiyor ama senin sürümünü doğrulayalım).
-- **Açmayan cezası:** temel **202**; elden/okey bitişte **404**; çift-okey'de daha
-  yüksek mi? (kaynaklarda 404→808 zinciri geçiyor — varyant).
-- **Istakada okey kalırsa:** biri bitince elinde okey kalanın **+101** ek cezası
-  (eşli'de partneri etkiler mi?) — varyant, doğrulanacak.
-- **Eşli puanlama — kaynaklar ÇELİŞİYOR:** bir kaynak "bir eş bitince partnerinin
-  cezası **silinir**" diyor; başka kaynak "kaybeden takımdaki oyuncuların cezaları
-  **ayrı ayrı toplanır**" diyor. **Senin sürümün hangisi?** → **senin kararın**.
-- **Eşe katlamalı / eşe katlamasız** varyantlarının puan farkları.
-- **Hedef skor / oyun sonu:** kaç ele kadar, baraj puanı, vb.
+- **Takım bazında** puanlanır (karşılıklı 2 takım). Her oyuncu **bireysel açar**;
+  partnerin açması seni açmış saymaz.
+- **Normal bitiş:** bir eş bitirince **o takımın el puanı ~0'a iner** (bitiren −101,
+  partnerinin elde-kalan cezası bağışlanır → takım nötr).
+- **Okey ile bitiş:** bitiren takıma ≈ **−200 (−202)**.
+- **Elden / hiç açmadan / kimse açmadan bitiş:** bitiren takıma ≈ **−400 (−404)**.
+- **Kaybeden takım:** iki oyuncunun cezaları **ayrı ayrı hesaplanıp toplanır**
+  (elde kalan taş × duruma göre çarpan; açmayan 202/404).
+- > Senin tarifin (−200 / −400) kaynaklardaki −202 / −404 merdiveniyle eşleşiyor;
+  > kesin kat sayılarını 1c brainstorm'unda kilitleyeceğiz.
 
-> Bu iki bölüm 1b/1c brainstorm'larında doğrulanıp yukarı (KESİN) taşınacak.
+## EV KURALI — ONAY BEKLİYOR (1c'de kilitlenecek: kalan ince ayarlar)
+
+- **Çarpan merdiveni kesin sayıları:** elden/okey/çift/çift-okey bitişlerin tam kat
+  sayıları (kaynaklar 2× / 4× ağırlıklı; çift-okey'de 404→808 zinciri geçen kaynak var).
+- **Açmayan cezası üst basamakları:** temel **202**; elden/okey bitişte **404**;
+  çift-okey bitişte daha yüksek mi?
+- **Katlamalı puan çarpanı** (açış eskalasyonunun skora yansıması) ve **eşe-katlamalı /
+  eşe-katlamasız** varyant farkları.
+
+> Bu bölüm 1c brainstorm'unda doğrulanıp yukarı (KESİN) taşınacak.
 
 ---
 
