@@ -1,4 +1,12 @@
-/** Base for all known, safe-to-surface application errors. */
+/**
+ * Base for all known, safe-to-surface application errors.
+ *
+ * NOTE: subclasses set `code` via a class-field initializer, which runs AFTER
+ * super() under ES2022 field semantics. Do NOT read `this.code` inside this
+ * constructor — it is still undefined here. Translate errors by reading `.code`
+ * and `.message` explicitly at the catch site (never JSON.stringify an Error;
+ * `message` is non-enumerable and would be dropped).
+ */
 export abstract class AppError extends Error {
   abstract readonly code: string;
   constructor(message: string) {
