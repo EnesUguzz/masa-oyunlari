@@ -17,6 +17,18 @@ export class PlayerRegistry {
 
   constructor(private readonly rng: Rng) {}
 
+  /**
+   * Resolve or create a player from a (optional) persistent token.
+   *
+   * CONTRACT: re-identifying a known token with a different nickname is an
+   * intentional in-place rename. The returned `Player` is the SAME object the
+   * registry stores, so any holder of that reference (e.g. a Room's player
+   * list) sees the new nickname immediately. Callers must therefore (1) have
+   * already validated `nickname` at the transport boundary (Zod), and (2)
+   * re-broadcast the affected PlayerView(s) after calling identify on reconnect.
+   * An unknown/absent token always mints a fresh player + token (guest UX:
+   * never hard-fail a stale localStorage token).
+   */
   identify(input: IdentifyInput): IdentifyResult {
     if (input.token) {
       const existing = this.byToken.get(input.token);
