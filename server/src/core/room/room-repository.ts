@@ -1,4 +1,4 @@
-import type { Room, RoomCode } from "@masa/shared";
+import type { PlayerId, Room, RoomCode } from "@masa/shared";
 
 /** Storage seam for rooms. In-memory now; Redis later behind the same interface. */
 export interface RoomRepository {
@@ -7,6 +7,8 @@ export interface RoomRepository {
   update(room: Room): void;
   delete(code: RoomCode): void;
   has(code: RoomCode): boolean;
+  /** The room a player currently sits in, if any (used for reconnect). */
+  findByPlayer(playerId: PlayerId): Room | undefined;
 }
 
 export class InMemoryRoomRepository implements RoomRepository {
@@ -26,5 +28,11 @@ export class InMemoryRoomRepository implements RoomRepository {
   }
   has(code: RoomCode): boolean {
     return this.rooms.has(code);
+  }
+  findByPlayer(playerId: PlayerId): Room | undefined {
+    for (const room of this.rooms.values()) {
+      if (room.players.some((p) => p.id === playerId)) return room;
+    }
+    return undefined;
   }
 }

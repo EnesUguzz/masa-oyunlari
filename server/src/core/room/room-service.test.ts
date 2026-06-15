@@ -70,4 +70,17 @@ describe("RoomService", () => {
     const after = service.leaveRoom(room.code, "p1" as PlayerId);
     expect(after?.ownerId).toBe("p2");
   });
+
+  it("finds the room a player currently belongs to (for reconnect)", () => {
+    const { service } = makeService();
+    const room = service.createRoom(player("p1", "Ada"));
+    service.joinRoom(room.code, player("p2", "Grace"));
+    expect(service.findRoomByPlayer("p2" as PlayerId)?.code).toBe(room.code);
+  });
+
+  it("returns undefined when the player is in no room", () => {
+    const { service } = makeService();
+    service.createRoom(player("p1", "Ada"));
+    expect(service.findRoomByPlayer("ghost" as PlayerId)).toBeUndefined();
+  });
 });

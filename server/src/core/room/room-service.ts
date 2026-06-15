@@ -56,6 +56,11 @@ export class RoomService {
     return this.repo.get(code);
   }
 
+  /** The room a player currently belongs to, if any (used to restore on reconnect). */
+  findRoomByPlayer(playerId: PlayerId): Room | undefined {
+    return this.repo.findByPlayer(playerId);
+  }
+
   private generateUniqueCode(): RoomCode {
     for (let attempt = 0; attempt < 1000; attempt++) {
       let code = "";

@@ -53,8 +53,14 @@ export function registerHandlers(deps: Deps): void {
         session.player = player;
         connections.attach(socket.id, player.id);
         socket.emit(ServerEvents.identified, { playerId: player.id, token });
-        // If this socket session already knew a room (rare), refresh it.
-        if (session.roomCode) sendRoomState(io, connections, session.roomCode, rooms);
+        // Reconnect: if this player's token is still seated in a room (their
+        // seat was held through the grace period), restore them to it and
+        // re-send their PlayerView so a page reload lands back in the room.
+        const current = rooms.findRoomByPlayer(player.id);
+        if (current) {
+          session.roomCode = current.code;
+          sendRoomState(io, connections, current.code, rooms);
+        }
       } catch (err) {
         fail(err);
       }
