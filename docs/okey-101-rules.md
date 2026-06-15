@@ -36,7 +36,12 @@
 
 - Sıra gelen oyuncu **1 taş çeker** (kapalı desteden **veya** solundaki oyuncunun
   son attığı taşı yerden), sonra elinden **1 taş atar**. El bu döngüyle ilerler.
-- **Çekme/atma sırası**, gösterge açma, "alttan/üstten işleme" gibi detaylar 1b'de.
+- **Yerden taş alma (KARARLAŞTIRILDI):** Yerden alınan taş **hemen bir per/çifte
+  kullanılmak zorunda** (sırf elde tutmak için yerden taş alınamaz). Çifte giden
+  oyuncu yerden alamaz (yukarı bak).
+- **İşleme (KARARLAŞTIRILDI):** El açtıktan sonra oyuncu **masadaki tüm perlere**
+  (kendi + rakip) uygun taş ekleyebilir; ayrıca **kendi yeni perlerini de açabilir**
+  (eli açıkken). Çift modunda da bitiş için açıp işleme gerekir (aşağı bak).
 
 ## Per (meld) kuralları (KESİN — 1a)
 
@@ -62,6 +67,11 @@
   alamaz**, yalnız kapalı desteden kendi çektiğiyle ilerler.
 - **Masada en fazla 3 oyuncu çifte gidebilir (KESİN):** 4 oyuncunun **dördü de**
   çifte giderse o **el iptal/bozulur**.
+- **Gösterge taşıyla +1 çift (KARARLAŞTIRILDI):** Gösterge değerinin destede **2 kopyası**
+  vardır; biri açık gösterge olarak masada durur (oyuna girmez), **ikinci kopya** oyundadır.
+  Bu ikinci kopya bir oyuncunun elindeyse, **çift modunda** onu **elindeki herhangi bir
+  taşla** eşleyip **+1 çift** yapabilir (jokerimsi, ama yalnız çift için). Yalnız bir tane
+  olduğundan en fazla **+1 çift** sağlar. (Gerçek okey zaten her çifte bağlanır.)
 
 ## El açma eşiği (KESİN — 1a)
 
@@ -72,18 +82,30 @@
   toplamını ≥ +1 geçmeli** (örn. biri 140 açtıysa sonraki ≥141). Eskalasyon 1b'de;
   1a'da eşik **parametre** (`minPoints`).
 
-## İşleme / cezalar (KESİN — kaynak konsensüsü, mekanik 1b, puan 1c)
+## İşleme / besleme cezaları (KARARLAŞTIRILDI — yalnız "cezalı" modda; mekanik 1b, kesin puan 1c)
 
-- **İşleme (işlek taş) cezası = 101:** Bir oyuncu, **masadaki açılmış bir pere
-  eklenebilecek** bir taş atarsa **101 ceza** alır (kendi açmamış olsa bile).
-  *İstisna:* tüm elini bitirip **son taşını** atıyorsa, o taş işlenebilir olsa da ceza yok.
+> **Mod bağımlı:** Aşağıdaki besleme cezaları yalnız **"cezalı"** modda işler;
+> **"cezasız"** modda hiçbiri uygulanmaz. (Bkz. mod matrisi.)
+
+- **Besleme / işlek taş cezası (KARARLAŞTIRILDI):** Bir oyuncu attığı taşı **başka bir
+  oyuncu yerden alıp** bir pere yerleştirip **el açarsa**, **atan (besleyen) oyuncu**
+  ceza alır:
+  - Alan oyuncu **seri (per) modundaysa → taşın değeri × 10**,
+  - Alan oyuncu **çift modundaysa → taşın değeri × 20**.
+  - Örnek: 5 atıldı, alan seriyle açtı → atan **+50** ceza.
+  - **İstisna:** Alan oyuncu **zaten açmışsa** (sonradan işliyorsa) **kimseye ceza yok**;
+    yine de aldığı taşı kullanmak zorunda. Bitiş için atılan **son taş** da ceza dışıdır.
 - **Okey atma cezası = 101:** Oyuncu okey (wildcard) taşını yere atarsa **101 ceza**.
 - **Yerden okey alma cezası = 101:** Okey taşı yalnız izinli durumda yerden alınır;
   kural dışı alınırsa **101 ceza**.
 - **Eksik puanla (101 altı) açma:** Açılan taşlar **geri alınır + 101 ceza**.
-- **Elde okey kalma cezası = +101 (KESİN — koşullu):** Bir oyuncu **el açmışsa** ve el
-  sonunda elinde **okey (wildcard)** tutuyorsa **+101 ek ceza** alır. **El açmamış**
-  oyuncunun elinde okey kalması ceza getirmez (zaten açmama cezasını alır).
+- **Elde okey kalma cezası = +101 (KARARLAŞTIRILDI — koşullu):** Bir oyuncu **el açmışsa**
+  ve el sonunda elinde **okey (wildcard)** tutuyorsa **+101 ek ceza** alır. **El açmamış**
+  oyuncunun elinde okey kalması ek ceza getirmez (zaten açmama cezasını alır).
+
+> Not: Yukarıdaki çarpanların (×10/×20) ve diğer ceza sayılarının kesin doğrulaması
+> ve "cezasız" mod tablosu 1c'de kilitlenir. 1b yalnız hamle **meşruiyetini** ve
+> besleme **olayını** (kim kime, hangi koşulda) tespit eder; puan aritmetiği 1c.
 
 ## Puanlama (kaynak konsensüsü; kesin kilitleme 1c'de)
 
@@ -105,7 +127,13 @@
 
 ## Oyun modları ve oyun sonu (KARARLAŞTIRILDI)
 
-- **Mod matrisi:** `{eşsiz, eşli} × {katlamasız, katlamalı}` + eşe-katlamalı/eşe-katlamasız.
+- **Mod matrisi (3 boyut):**
+  `{eşsiz, eşli} × {katlamasız, katlamalı} × {cezasız, cezalı}`.
+  - **eşli/eşsiz:** takım mı bireysel mi (eşli'de eşe-katlamalı/eşe-katlamasız alt
+    varyantları 1c'de netleşir).
+  - **katlamalı/katlamasız:** açış eşiği sabit mi (101/5-çift) yoksa eskale mi.
+  - **cezasız/cezalı:** besleme cezaları (×10/×20) **kapalı** mı **açık** mı.
+- Oda kurucusu bu üç boyutu oda kurulurken seçer; motor config olarak alır.
 - **Maç sonu:** oda kurucusu **7 / 11 / 21 el** seçer (kullanıcı seçimli). El sonunda
   en düşük toplam ceza puanı kazanır. (Baraj/hedef-puan modu şimdilik yok.)
 
@@ -117,13 +145,12 @@
   + son-taş-atma gerekir.
 - > Bu kuralı ileride inceleyip değiştirmek istersen söyle (oyuncu notu).
 
-## EV KURALI — ONAY BEKLİYOR (1b'de kilitlenecek: tur akışı / oyun-durumu)
+## 1b kural netliği (KARARLAŞTIRILDI — açık kalan büyük belirsizlik yok)
 
-- **İşleme detayları:** atılan taşın masadaki hangi perlere (alttan/üstten) eklenebildiği,
-  "işlek" sayılma anı; çift modunda işleme akışının tam tanımı.
-- **Gösterge / okey'in elde özel kullanımı**, ilk el açıldığında göstergeyi çifte bağlama
-  (+1 kuralı — senin daha önce belirttiğin).
-- Çekme/atma sırası ve "son taş" bitiş anının tam tanımı.
+- İşleme hedefi, yerden-alma kısıtı, gösterge +1, besleme cezası olayı, çiftle-bitiş
+  akışı yukarıda netleşti. 1b tasarımı bunların üstüne kurulur.
+- Kalan ufak nokta: bir taşın bir seriye **alttan mı üstten mi** eklendiği, 1a meld
+  geçerlilik kuralından doğal çıkar (eklenince per hâlâ geçerli mi?) — ayrı kural değil.
 
 ## Eşli (takımlı) puanlama (KARARLAŞTIRILDI — çalışma modeli, 1c'de doğrulanacak)
 
