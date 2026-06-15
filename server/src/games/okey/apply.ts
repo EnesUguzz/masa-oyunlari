@@ -5,6 +5,7 @@ import type { Move } from "./move.js";
 import { IllegalDrawError, FloorTileUnusedError } from "./errors.js";
 import { cloneState, current, requirePhase, removeTilesFromHand } from "./helpers.js";
 import { buildExhaustOutcome, buildFinishOutcome } from "./outcome.js";
+import { applyOpenMelds } from "./opening.js";
 
 export function applyMove(state: OkeyGameState, move: Move, bySeat: number): OkeyGameState {
   if (state.status !== "playing") throw new InvalidMoveError("hand is not in progress");
@@ -14,6 +15,7 @@ export function applyMove(state: OkeyGameState, move: Move, bySeat: number): Oke
     case "drawFromPile": drawFromPile(s); break;
     case "drawFromDiscard": drawFromDiscard(s); break;
     case "discard": discard(s, move.tile); break;
+    case "openMelds": applyOpenMelds(s, move.melds); break;
     default: throw new InvalidMoveError(`unsupported move: ${move.kind}`);
   }
   return s;
