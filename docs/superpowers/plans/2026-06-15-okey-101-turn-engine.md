@@ -31,6 +31,8 @@ All new files under `server/src/games/okey/`:
 
 Run commands (Windows PowerShell or Bash): `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm build`. Single test file: `pnpm --filter @masa/server test --run src/games/okey/<name>.test.ts`.
 
+> **IMPORTANT — branded PlayerId:** `@masa/shared`'s `PlayerId` is a branded type (`string & { __brand: "PlayerId" }`), NOT a plain string. In every test that constructs player ids, import `import type { PlayerId } from "@masa/shared";` and cast: a list as `["p0","p1","p2","p3"] as PlayerId[]`, an inline id as `` `p${seat}` as PlayerId `` or `"p0" as PlayerId`. **`vitest` does not typecheck — always run `pnpm typecheck` before committing; it MUST be clean.** (The code blocks below omit these casts for brevity; add them.)
+
 ---
 
 ## Task 1: Game config
