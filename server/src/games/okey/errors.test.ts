@@ -26,6 +26,7 @@ describe("okey errors", () => {
       new IllegalDrawError("x").code,
       new AlreadyOpenedError().code,
       new NotOpenedError().code,
+      new OpeningThresholdNotMetError("x").code,
       new ModeLockedError("x").code,
       new FloorTileUnusedError().code,
       new TileNotInHandError().code,
