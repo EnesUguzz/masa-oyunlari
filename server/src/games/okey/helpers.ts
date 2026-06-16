@@ -15,7 +15,6 @@ function cloneOutcome(o: HandOutcome): HandOutcome {
     finishType: o.finishType ? { ...o.finishType } : null,
     leftovers: o.leftovers.map((l) => ({ seat: l.seat, tiles: cloneTiles(l.tiles) })),
     feedingEvents: o.feedingEvents.map((e) => ({ ...e })),
-    isVoid: o.isVoid,
     deckExhausted: o.deckExhausted,
   };
 }
@@ -84,12 +83,35 @@ export function recordFeeding(
   });
 }
 
+function partnerSeat(s: OkeyGameState, seat: number): number | null {
+  if (s.config.pairing !== "esli") return null;
+  const team = s.players[seat]!.team;
+  for (const p of s.players) if (p.seat !== seat && p.team === team) return p.seat;
+  return null;
+}
+
 export function meldThreshold(s: OkeyGameState): number {
   if (s.config.escalation === "katlamasiz") return s.config.openThreshold;
-  return s.highestOpenScore === null ? s.config.openThreshold : s.highestOpenScore + 1;
+  const me = s.turn;
+  const excludePartner = s.config.pairing === "esli" && s.config.partnerEscalation === "ese-katlamasiz";
+  const partner = excludePartner ? partnerSeat(s, me) : null;
+  let best: number | null = null;
+  for (const p of s.players) {
+    if (p.seat === me || p.seat === partner) continue;
+    if (p.opened && p.openMode === "melds") best = best === null ? p.openScore : Math.max(best, p.openScore);
+  }
+  return best === null ? s.config.openThreshold : best + 1;
 }
 
 export function pairThreshold(s: OkeyGameState): number {
   if (s.config.escalation === "katlamasiz") return s.config.minPairs;
-  return s.highestOpenPairs === null ? s.config.minPairs : s.highestOpenPairs + 1;
+  const me = s.turn;
+  const excludePartner = s.config.pairing === "esli" && s.config.partnerEscalation === "ese-katlamasiz";
+  const partner = excludePartner ? partnerSeat(s, me) : null;
+  let best: number | null = null;
+  for (const p of s.players) {
+    if (p.seat === me || p.seat === partner) continue;
+    if (p.opened && p.openMode === "pairs") best = best === null ? p.pairCount : Math.max(best, p.pairCount);
+  }
+  return best === null ? s.config.minPairs : best + 1;
 }

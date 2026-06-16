@@ -18,18 +18,6 @@ export function buildFinishOutcome(s: OkeyGameState, finisher: PlayerHandState, 
     },
     leftovers: leftoversOf(s, finisher.seat),
     feedingEvents: s.feedingEvents.map((e) => ({ ...e })),
-    isVoid: false,
-    deckExhausted: false,
-  };
-}
-
-export function buildVoidOutcome(s: OkeyGameState): HandOutcome {
-  return {
-    finisherSeat: null,
-    finishType: null,
-    leftovers: leftoversOf(s, null),
-    feedingEvents: s.feedingEvents.map((e) => ({ ...e })),
-    isVoid: true,
     deckExhausted: false,
   };
 }
@@ -40,7 +28,6 @@ export function buildExhaustOutcome(s: OkeyGameState): HandOutcome {
     finishType: null,
     leftovers: leftoversOf(s, null),
     feedingEvents: s.feedingEvents.map((e) => ({ ...e })),
-    isVoid: false,
     deckExhausted: true,
   };
 }

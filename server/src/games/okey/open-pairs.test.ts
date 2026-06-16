@@ -71,11 +71,11 @@ describe("applyOpenPairs", () => {
     expect(() => applyMove(s, { kind: "openPairs", pairs }, 0)).toThrow();
   });
 
-  it("voids the hand when the fourth player opens pairs", () => {
+  it("allows a fourth player to open pairs without voiding the hand", () => {
     const pairs = [pair("red", 1), pair("red", 2), pair("red", 3), pair("red", 4), pair("red", 5)];
     const s = pairsState(pairs.flat(), [null, "pairs", "pairs", "pairs"]);
     const next = applyMove(s, { kind: "openPairs", pairs }, 0);
-    expect(next.status).toBe("void");
-    expect(next.outcome?.isVoid).toBe(true);
+    expect(next.status).toBe("playing");
+    expect(next.players[0]!.openMode).toBe("pairs");
   });
 });

@@ -15,4 +15,11 @@ describe("makeConfig", () => {
     expect(c.openThreshold).toBe(51);
     expect(c.minPairs).toBe(6);
   });
+
+  it("defaults partnerEscalation to ese-katlamali and respects overrides", () => {
+    const a = makeConfig({ pairing: "esli", escalation: "katlamali", penalty: "cezasiz", targetHands: 11 });
+    expect(a.partnerEscalation).toBe("ese-katlamali");
+    const b = makeConfig({ pairing: "esli", escalation: "katlamali", penalty: "cezasiz", targetHands: 11, partnerEscalation: "ese-katlamasiz" });
+    expect(b.partnerEscalation).toBe("ese-katlamasiz");
+  });
 });
