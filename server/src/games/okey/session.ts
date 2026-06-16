@@ -10,6 +10,7 @@ import { scoreHand } from "./scoring.js";
 import { createMatch, applyHandScore, type MatchState } from "./match.js";
 import { toOkeyPlayerView } from "./view.js";
 import { autoMoves } from "./auto-move.js";
+import { botMoves } from "./bot.js";
 import type { OkeyTableView, SeatInfo } from "./table-view.js";
 
 /** Per-room live okey game: wraps the pure engine, advances hands, projects views. */
@@ -62,18 +63,45 @@ export class OkeySession {
     }
   }
 
-  /** Auto-play safe moves so a stalled/disconnected seat does not block the game. */
+  /** Auto-play a seat's turn. Bots use the heuristic planner; humans (timeout) use safe autoMoves. */
   autoPlayTurn(seat: number): void {
     const hn = this.handNumber;
     let guard = 0;
-    while (this.handNumber === hn && this.hand.status === "playing" && this.hand.turn === seat && guard++ < 6) {
-      const moves = autoMoves(this.hand);
+    while (this.handNumber === hn && this.hand.status === "playing" && this.hand.turn === seat && guard++ < 12) {
+      const moves = this.planTurn(seat);
       if (moves.length === 0) break;
       for (const m of moves) {
         this.apply(seat, m);
         if (this.handNumber !== hn || this.hand.turn !== seat) break;
       }
     }
+  }
+
+  /** Bot seat -> heuristic plan validated by dry-run; on any problem fall back to safe autoMoves. */
+  private planTurn(seat: number): Move[] {
+    if (this.isBotSeat(seat)) {
+      try {
+        const moves = botMoves(this.hand, seat);
+        if (moves.length > 0 && this.movesAreLegal(seat, moves)) return moves;
+      } catch {
+        // düş
+      }
+    }
+    return autoMoves(this.hand);
+  }
+
+  /** Dry-run on cloned state (applyMove is pure) so a buggy plan never corrupts the live hand. */
+  private movesAreLegal(seat: number, moves: Move[]): boolean {
+    let s = this.hand;
+    for (const m of moves) {
+      try {
+        s = applyMove(s, m, s.turn);
+      } catch {
+        return false;
+      }
+      if (s.status !== "playing" || s.turn !== seat) break;
+    }
+    return true;
   }
 
   seatList(): SeatInfo[] {

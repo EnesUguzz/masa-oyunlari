@@ -71,4 +71,15 @@ describe("OkeySession", () => {
     expect(() => s.apply(1, { kind: "drawFromPile" })).toThrow();
     expect(s.currentSeat).toBe(0);
   });
+
+  it("4 bot bir eli yalnızca legal hamlelerle sonuna kadar oynar", () => {
+    const bots: Player[] = players().map((p) => ({ ...p, isBot: true }));
+    const session = new OkeySession(config, bots, new SeededRng(42));
+
+    let guard = 0;
+    while (!session.isOver && guard++ < 100000) {
+      session.autoPlayTurn(session.currentSeat);
+    }
+    expect(session.isOver).toBe(true);
+  });
 });
