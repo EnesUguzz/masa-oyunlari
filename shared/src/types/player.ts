@@ -4,4 +4,5 @@ export type PlayerId = string & { readonly __brand: "PlayerId" };
 export interface Player {
   id: PlayerId;
   nickname: string;
+  isBot?: boolean;
 }

@@ -83,4 +83,23 @@ describe("RoomService", () => {
     service.createRoom(player("p1", "Ada"));
     expect(service.findRoomByPlayer("ghost" as PlayerId)).toBeUndefined();
   });
+
+  it("addBots fills up to capacity with isBot flag and unique ids", () => {
+    const rooms = new RoomService(new InMemoryRoomRepository(), new SeededRng(1), 4);
+    const owner = { id: "p0" as PlayerId, nickname: "N0" };
+    const room = rooms.createRoom(owner);
+    const after = rooms.addBots(room.code, 3)!;
+    expect(after.players.length).toBe(4);
+    const bots = after.players.filter((p) => p.isBot);
+    expect(bots.length).toBe(3);
+    expect(new Set(bots.map((b) => b.id)).size).toBe(3);
+    expect(bots.map((b) => b.nickname)).toEqual(["Bot 1", "Bot 2", "Bot 3"]);
+  });
+
+  it("addBots never exceeds capacity", () => {
+    const rooms = new RoomService(new InMemoryRoomRepository(), new SeededRng(1), 4);
+    const room = rooms.createRoom({ id: "p0" as PlayerId, nickname: "N0" });
+    rooms.addBots(room.code, 10);
+    expect(rooms.getRoom(room.code)!.players.length).toBe(4);
+  });
 });
