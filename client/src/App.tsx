@@ -65,7 +65,7 @@ export function App() {
         />
       )}
       {screen === "table" && table && (
-        <OkeyTable table={table} onMove={(m) => socket.sendMove(m)} />
+        <OkeyTable table={table} onMove={(m) => socket.sendMove(m)} onLeave={() => { setTable(null); setScreen("lobby"); }} />
       )}
     </main>
   );

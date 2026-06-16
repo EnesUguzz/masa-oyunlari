@@ -16,7 +16,9 @@ export function Scoreboard({ match, seating }: { match: MatchStanding; seating: 
       )}
       {match.status === "finished" && match.winner && (
         <p style={{ color: "green", fontWeight: 700 }}>
-          Kazanan: {match.winner.kind === "seat" ? seating[match.winner.seat]?.nickname : `Takım ${match.winner.team}`}
+          Kazanan: {match.winner.kind === "seat"
+            ? (seating.find((s) => match.winner && match.winner.kind === "seat" && s.seat === match.winner.seat)?.nickname ?? `#${match.winner.seat}`)
+            : `Takım ${match.winner.team}`}
         </p>
       )}
     </div>
