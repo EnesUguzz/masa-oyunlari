@@ -23,7 +23,10 @@ export function Room({ view, socket, onLeave }: { view: PlayerView; socket: Game
       </ul>
       {canStart && <StartGamePanel onStart={(config) => socket.startGame(config)} />}
       {isOwner && room.status === "waiting" && room.players.length < room.capacity && (
-        <p><em>Başlatmak için {room.capacity} oyuncu gerekli.</em></p>
+        <>
+          <button onClick={() => socket.addBots()}>Botlarla Doldur</button>
+          <p><em>Başlatmak için {room.capacity} oyuncu gerekli.</em></p>
+        </>
       )}
       <button onClick={onLeave}>Odadan Ayrıl</button>
     </div>

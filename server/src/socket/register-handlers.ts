@@ -6,6 +6,7 @@ import {
   createRoomSchema,
   joinRoomSchema,
   leaveRoomSchema,
+  addBotsSchema,
 } from "@masa/shared";
 import type { Player } from "@masa/shared";
 import { PlayerRegistry } from "../core/player/player-registry.js";
@@ -119,6 +120,22 @@ export function registerHandlers(deps: Deps): void {
           session.roomCode = undefined;
           sendRoomState(io, connections, code, rooms);
         }
+      } catch (err) {
+        fail(err);
+      }
+    });
+
+    socket.on(ClientEvents.addBots, (raw: unknown) => {
+      try {
+        addBotsSchema.parse(raw);
+        const player = requirePlayer(session);
+        const code = session.roomCode;
+        const room = code ? rooms.getRoom(code) : undefined;
+        if (!room || !code) throw new ValidationError("Not in a room");
+        if (room.ownerId !== player.id) throw new ValidationError("Only the owner can add bots");
+        if (room.status !== "waiting") throw new ValidationError("Game already started");
+        rooms.addBots(code, room.capacity - room.players.length);
+        sendRoomState(io, connections, code, rooms);
       } catch (err) {
         fail(err);
       }

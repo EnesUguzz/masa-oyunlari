@@ -54,6 +54,10 @@ export class GameSocket {
     this.socket.emit(ClientEvents.leaveRoom, {});
   }
 
+  addBots(): void {
+    this.socket.emit("addBots", {});
+  }
+
   startGame(config: StartGameConfig): void {
     this.socket.emit("okey:startGame", config);
   }

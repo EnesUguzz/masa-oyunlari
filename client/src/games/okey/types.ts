@@ -61,7 +61,7 @@ export interface MatchStanding {
   status: "playing" | "finished";
   winner: MatchWinner;
 }
-export interface SeatInfo { seat: number; playerId: string; nickname: string; }
+export interface SeatInfo { seat: number; playerId: string; nickname: string; isBot: boolean; }
 export interface OkeyTableView {
   view: OkeyPlayerView;
   match: MatchStanding;
