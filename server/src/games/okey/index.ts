@@ -15,3 +15,8 @@ export * from "./view.js";
 export { applyMove } from "./apply.js";
 export * from "./scoring.js";
 export * from "./match.js";
+export * from "./contract.js";
+export * from "./table-view.js";
+export * from "./session.js";
+export * from "./auto-move.js";
+export * from "./handlers.js";
