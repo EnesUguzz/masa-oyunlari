@@ -9,6 +9,7 @@ import { InMemoryRoomRepository } from "./core/room/room-repository.js";
 import { RoomService } from "./core/room/room-service.js";
 import { ConnectionManager } from "./core/connection/connection-manager.js";
 import { registerHandlers } from "./socket/register-handlers.js";
+import { OkeySessionStore } from "./games/okey/handlers.js";
 import type { PlayerId } from "@masa/shared";
 
 const config = loadConfig(process.env);
@@ -18,6 +19,7 @@ const clock = new RealClock();
 const registry = new PlayerRegistry(rng);
 const roomRepo = new InMemoryRoomRepository();
 const rooms = new RoomService(roomRepo, rng, 4);
+const okeyStore = new OkeySessionStore();
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -33,7 +35,10 @@ const connections = new ConnectionManager(clock, config.gracePeriodMs, (playerId
   // reconnect reattach by token membership, or reload-reconnect will break.
 });
 
-registerHandlers({ io, registry, rooms, connections, logger });
+registerHandlers({
+  io, registry, rooms, connections, logger,
+  store: okeyStore, rng, clock, turnTimeoutMs: config.turnTimeoutMs,
+});
 
 httpServer.listen(config.port, () => {
   logger.info({ port: config.port }, "masa server listening");

@@ -1,4 +1,4 @@
-import type { Player, PlayerId, Room, RoomCode } from "@masa/shared";
+import type { Player, PlayerId, Room, RoomCode, RoomStatus } from "@masa/shared";
 import type { Rng } from "../rng.js";
 import type { RoomRepository } from "./room-repository.js";
 import { RoomFullError, RoomNotFoundError } from "../errors/index.js";
@@ -54,6 +54,14 @@ export class RoomService {
 
   getRoom(code: RoomCode): Room | undefined {
     return this.repo.get(code);
+  }
+
+  setStatus(code: RoomCode, status: RoomStatus): Room | undefined {
+    const room = this.repo.get(code);
+    if (!room) return undefined;
+    room.status = status;
+    this.repo.update(room);
+    return room;
   }
 
   /** The room a player currently belongs to, if any (used to restore on reconnect). */

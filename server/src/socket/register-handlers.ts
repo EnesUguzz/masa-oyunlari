@@ -14,6 +14,10 @@ import { ConnectionManager } from "../core/connection/connection-manager.js";
 import { toPlayerView } from "../core/view/to-player-view.js";
 import { AppError, ValidationError } from "../core/errors/index.js";
 import type { Logger } from "../core/logger.js";
+import type { OkeySessionStore } from "../games/okey/handlers.js";
+import type { Rng } from "../core/rng.js";
+import type { Clock } from "../core/clock.js";
+import { registerOkeyHandlers } from "../games/okey/handlers.js";
 
 interface Deps {
   io: Server;
@@ -21,6 +25,10 @@ interface Deps {
   rooms: RoomService;
   connections: ConnectionManager;
   logger: Logger;
+  store: OkeySessionStore;
+  rng: Rng;
+  clock: Clock;
+  turnTimeoutMs: number;
 }
 
 interface Session {
@@ -33,6 +41,11 @@ export function registerHandlers(deps: Deps): void {
 
   io.on("connection", (socket: Socket) => {
     const session: Session = {};
+
+    registerOkeyHandlers(socket, () => session.player, () => session.roomCode, {
+      io, rooms, connections, store: deps.store, rng: deps.rng, clock: deps.clock,
+      turnTimeoutMs: deps.turnTimeoutMs, logger,
+    });
 
     const fail = (err: unknown) => {
       if (err instanceof AppError) {
@@ -60,6 +73,12 @@ export function registerHandlers(deps: Deps): void {
         if (current) {
           session.roomCode = current.code;
           sendRoomState(io, connections, current.code, rooms);
+          const liveSession = deps.store.get(current.code);
+          if (liveSession) {
+            const seat = liveSession.seatOf(player.id);
+            const sid = connections.socketForPlayer(player.id);
+            if (seat !== null && sid) io.to(sid).emit("okey:state", liveSession.tableViewFor(seat));
+          }
         }
       } catch (err) {
         fail(err);
