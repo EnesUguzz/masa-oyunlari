@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { numbered, fakeJoker } from "./tile.js";
 import type { NumberedTile, OkeyTile } from "./tile.js";
-import { decompose, tileKey, removeTiles } from "./bot.js";
+import { decompose, tileKey, removeTiles, chooseDiscard } from "./bot.js";
 import { isValidMeld } from "./meld.js";
 
 const okey: NumberedTile = numbered("red", 13); // wildcard = red13; fakeJoker da wild
@@ -79,5 +79,28 @@ describe("decompose ek davranışlar", () => {
     const d = decompose(hand, okey, "maxTilesUsed");
     expect(d.groups.length).toBeGreaterThan(0);
     for (const g of d.groups) expect(isValidMeld(g, okey)).toBe(true);
+  });
+});
+
+describe("chooseDiscard", () => {
+  it("per'e girmeyen ölü taşı atar", () => {
+    const hand: OkeyTile[] = [
+      numbered("red", 4), numbered("red", 5), numbered("red", 6), // per
+      numbered("black", 12), // ölü, yüksek değer
+    ];
+    const t = chooseDiscard(hand, okey);
+    expect(t).toEqual(numbered("black", 12));
+  });
+
+  it("mümkünse joker atmaz", () => {
+    const hand: OkeyTile[] = [fakeJoker(), numbered("black", 3)];
+    const t = chooseDiscard(hand, okey);
+    expect(t).toEqual(numbered("black", 3));
+  });
+
+  it("birden çok ölü taştan en yüksek değerliyi atar", () => {
+    const hand: OkeyTile[] = [numbered("blue", 2), numbered("black", 9), numbered("red", 4)];
+    const t = chooseDiscard(hand, okey);
+    expect(t).toEqual(numbered("black", 9));
   });
 });

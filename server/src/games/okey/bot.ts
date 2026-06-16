@@ -190,3 +190,30 @@ export function decompose(
   recurse();
   return { groups: best.groups, value: best.value, tilesUsed: best.tilesUsed };
 }
+
+function tileVal(t: OkeyTile): number {
+  return t.kind === "numbered" ? t.value : 0;
+}
+
+export function chooseDiscard(hand: readonly OkeyTile[], okey: NumberedTile): OkeyTile {
+  if (hand.length === 0) throw new Error("chooseDiscard: empty hand");
+  const nonWild = hand.filter((t) => !isWildcard(t, okey));
+  const pool = nonWild.length > 0 ? nonWild : [...hand];
+
+  // En çok taş kullanan çözümlemede yer almayan taşlar "ölü"dür.
+  const best = decompose(hand, okey, "maxTilesUsed");
+  const remainingUsed = new Map<string, number>();
+  for (const g of best.groups) for (const t of g) {
+    const k = tileKey(t);
+    remainingUsed.set(k, (remainingUsed.get(k) ?? 0) + 1);
+  }
+  const dead: OkeyTile[] = [];
+  for (const t of pool) {
+    const k = tileKey(t);
+    const c = remainingUsed.get(k) ?? 0;
+    if (c > 0) remainingUsed.set(k, c - 1);
+    else dead.push(t);
+  }
+  const candidates = dead.length > 0 ? dead : pool;
+  return candidates.reduce((worst, t) => (tileVal(t) > tileVal(worst) ? t : worst), candidates[0]!);
+}
