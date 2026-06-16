@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { numbered, fakeJoker } from "./tile.js";
 import type { NumberedTile, OkeyTile } from "./tile.js";
-import { decompose, tileKey, removeTiles, chooseDiscard } from "./bot.js";
+import { decompose, tileKey, removeTiles, chooseDiscard, botMoves } from "./bot.js";
 import { isValidMeld } from "./meld.js";
+import type { OkeyGameState, PlayerHandState } from "./game-state.js";
+import type { PlayerId } from "@masa/shared";
+import { makeConfig } from "./game-config.js";
 
 const okey: NumberedTile = numbered("red", 13); // wildcard = red13; fakeJoker da wild
 
@@ -102,5 +105,63 @@ describe("chooseDiscard", () => {
     const hand: OkeyTile[] = [numbered("blue", 2), numbered("black", 9), numbered("red", 4)];
     const t = chooseDiscard(hand, okey);
     expect(t).toEqual(numbered("black", 9));
+  });
+});
+
+function ph(seat: number, hand: OkeyTile[], over: Partial<PlayerHandState> = {}): PlayerHandState {
+  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null, ...over };
+}
+function gs(over: Partial<OkeyGameState> & { players: PlayerHandState[] }): OkeyGameState {
+  return {
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+    indicator: numbered("red", 12), okey, drawPile: [], discards: [[], [], [], []], tableMelds: [],
+    turn: 0, turnSeq: 0, phase: "draw", pendingFloorTile: null, highestOpenScore: null, highestOpenPairs: null,
+    feedingEvents: [], meldSeq: 0, status: "playing", outcome: null, ...over,
+  };
+}
+
+describe("botMoves", () => {
+  it("çekme fazında desteden çeker", () => {
+    const s = gs({ players: [ph(0, [numbered("blue", 4)]), ph(1, []), ph(2, []), ph(3, [])], phase: "draw" });
+    expect(botMoves(s, 0)).toEqual([{ kind: "drawFromPile" }]);
+  });
+
+  it("eşik tutmuyorsa açmaz, sadece atar", () => {
+    const hand = [numbered("blue", 2), numbered("black", 3), numbered("red", 7)];
+    const s = gs({ players: [ph(0, hand), ph(1, []), ph(2, []), ph(3, [])], phase: "act" });
+    const moves = botMoves(s, 0);
+    expect(moves.every((m) => m.kind !== "openMelds" && m.kind !== "openPairs")).toBe(true);
+    expect(moves[moves.length - 1]!.kind).toBe("discard");
+  });
+
+  it("eşik dolunca per'lerle açar ve sonunda atar", () => {
+    const hand = [
+      numbered("red", 11), numbered("red", 12), numbered("red", 13),
+      numbered("blue", 11), numbered("blue", 12), numbered("blue", 13),
+      numbered("black", 9), numbered("black", 10), numbered("black", 11),
+      numbered("yellow", 2),
+    ];
+    const s = gs({ players: [ph(0, hand), ph(1, []), ph(2, []), ph(3, [])], phase: "act" });
+    const moves = botMoves(s, 0);
+    expect(moves[0]!.kind).toBe("openMelds");
+    expect(moves[moves.length - 1]!.kind).toBe("discard");
+  });
+
+  it("açıkken kalan taşları dizip son taşı atarak biter", () => {
+    const hand = [numbered("red", 4), numbered("red", 5), numbered("red", 6), numbered("yellow", 1)];
+    const s = gs({
+      players: [ph(0, hand, { opened: true, openMode: "melds", openScore: 101 }), ph(1, []), ph(2, []), ph(3, [])],
+      phase: "act",
+    });
+    const moves = botMoves(s, 0);
+    expect(moves.some((m) => m.kind === "openNewMeld")).toBe(true);
+    const last = moves[moves.length - 1]!;
+    expect(last.kind).toBe("discard");
+    expect(last).toEqual({ kind: "discard", tile: numbered("yellow", 1) });
+  });
+
+  it("sıra onda değilse boş döner", () => {
+    const s = gs({ players: [ph(0, []), ph(1, [numbered("blue", 4)]), ph(2, []), ph(3, [])], phase: "act", turn: 1 });
+    expect(botMoves(s, 0)).toEqual([]);
   });
 });
