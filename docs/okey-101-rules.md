@@ -107,33 +107,44 @@
 > ve "cezasız" mod tablosu 1c'de kilitlenir. 1b yalnız hamle **meşruiyetini** ve
 > besleme **olayını** (kim kime, hangi koşulda) tespit eder; puan aritmetiği 1c.
 
-## Puanlama (kaynak konsensüsü; kesin kilitleme 1c'de)
+## Puanlama — el sonu (KARARLAŞTIRILDI — eşsiz; 1c'de uygulanır)
 
-> Aşağıdaki temel iskelet kaynaklarda tutarlı; **çarpan merdiveni** ve **eşli
-> puanlama** noktaları varyanta bağlı → "ONAY BEKLİYOR" bölümüne bak.
+**Bitiş çarpanı `m`:** Bayraklar `{elden, okey, çift}` (1b `HandOutcome.finishType`):
+`elden` = bitiren aynı turda açıp bitirdi; `okey` = son atılan taş wildcard;
+`çift` = bitiren çift modunda. `k` = kaç bayrak doğru → **`m = 2^k`**
+(0→×1, 1→×2, 2→×4, 3→×8). Çarpan **bitiş-kaynaklı tüm puanlara** uygulanır:
 
-- **Bitiren oyuncu: −101** (en düşük skor kazanır; ceza biriktirme oyunu).
-- **Biri bitince diğerleri:** elde kalan taşların **sayı değerleri toplamı** kadar ceza.
-- **Hiç açmamış oyuncu:** biri bitince **202 ceza** (elindeki taş değil, sabit 202).
-- **Bitiriş türü çarpanları (kaynak konsensüsü, onay bekliyor):**
-  - Normal bitiş → bitiren −101; kaybedenler elindeki kadar.
-  - **Elden bitiş** (hiç açmadan tek hamlede tüm eli bitirme) → bitiren −202; rakip
-    cezaları **×2**; açmayan **404**.
-  - **Okey ile bitiş** (son atılan/bitiren taş okey) → −202; rakip cezaları **×2**.
-  - **Elden + okey** → −404; cezalar **×4**.
-  - **Çift bitiş** → rakip cezaları **×2**; **çift okey** bitiş → **×4**.
+- **Bitiren oyuncu:** **−101 · m** (en düşük skor kazanır; ceza biriktirme oyunu).
+- **Açmış kaybeden:** elde kalan taşların **değer toplamı · m** ceza.
+- **Hiç açmamış kaybeden:** **202 · m** ceza (elindeki taş yerine sabit 202, sonra ×m).
+- Örn: rakip elden+okey bitti (m=4) → bitiren −404; açmış kaybeden elindeki·4;
+  açmamış 808.
+
+**Çarpandan bağımsız (sabit) ek cezalar** — `m` ile çarpılmaz:
+- **Elde okey kalma:** açmış oyuncu el sonunda elinde okey tutuyorsa **+101** (sabit).
+- **Besleme cezası (yalnız cezalı mod):** her `FeedingEvent` için besleyene
+  **taş değeri × 10** (alan seri) / **× 20** (alan çift). (1b olayı kaydeder.)
+- Okey atma / yerden kural-dışı okey alma / 101-altı açma cezaları: **101** (sabit).
+
+**Deste tükenmesi / 4-çift iptali:** bitiren yok → bitiş çarpanı yok; her oyuncu
+elde kalan taş değerini (m=1) ceza alır (açmamışsa 202). İptalde (`isVoid`) el
+puansız da sayılabilir — 1c tasarımında netleşir.
 
 ---
 
 ## Oyun modları ve oyun sonu (KARARLAŞTIRILDI)
 
-- **Mod matrisi (3 boyut):**
+- **Mod matrisi (3 boyut + 1 alt-seçenek):**
   `{eşsiz, eşli} × {katlamasız, katlamalı} × {cezasız, cezalı}`.
-  - **eşli/eşsiz:** takım mı bireysel mi (eşli'de eşe-katlamalı/eşe-katlamasız alt
-    varyantları 1c'de netleşir).
+  - **eşli/eşsiz:** takım mı bireysel mi.
   - **katlamalı/katlamasız:** açış eşiği sabit mi (101/5-çift) yoksa eskale mi.
   - **cezasız/cezalı:** besleme cezaları (×10/×20) **kapalı** mı **açık** mı.
-- Oda kurucusu bu üç boyutu oda kurulurken seçer; motor config olarak alır.
+  - **eşe-katlamalı / eşe-katlamasız (alt-seçenek):** yalnız **katlamalı + eşli**
+    seçilince anlamlı; oda kurucusu seçer. **Eşe-katlamasız:** bir oyuncunun açış eşiği
+    **partner hariç** en yüksek açışı geçer (partnerini geçmek zorunda değil; ilk açanın
+    eşi rakip açmadıysa 101'den açar, rakip açtıysa onu geçer). **Eşe-katlamalı:**
+    partner dahil **herkesi** geçer (motorun mevcut global eşik davranışı).
+- Oda kurucusu bu boyutları oda kurulurken seçer; motor config olarak alır.
 - **Maç sonu:** oda kurucusu **7 / 11 / 21 el** seçer (kullanıcı seçimli). El sonunda
   en düşük toplam ceza puanı kazanır. (Baraj/hedef-puan modu şimdilik yok.)
 
@@ -152,29 +163,25 @@
 - Kalan ufak nokta: bir taşın bir seriye **alttan mı üstten mi** eklendiği, 1a meld
   geçerlilik kuralından doğal çıkar (eklenince per hâlâ geçerli mi?) — ayrı kural değil.
 
-## Eşli (takımlı) puanlama (KARARLAŞTIRILDI — çalışma modeli, 1c'de doğrulanacak)
+## Eşli (takımlı) puanlama (KARARLAŞTIRILDI — 1c'de uygulanır)
 
-- **Takım bazında** puanlanır (karşılıklı 2 takım). Her oyuncu **bireysel açar**;
-  partnerin açması seni açmış saymaz.
-- **Normal bitiş:** bir eş bitirince **o takımın el puanı ~0'a iner** (bitiren −101,
-  partnerinin elde-kalan cezası bağışlanır → takım nötr).
-- **Okey ile bitiş:** bitiren takıma ≈ **−200 (−202)**.
-- **Elden / hiç açmadan / kimse açmadan bitiş:** bitiren takıma ≈ **−400 (−404)**.
-- **Kaybeden takım:** iki oyuncunun cezaları **ayrı ayrı hesaplanıp toplanır**
-  (elde kalan taş × duruma göre çarpan; açmayan 202/404).
-- > Senin tarifin (−200 / −400) kaynaklardaki −202 / −404 merdiveniyle eşleşiyor;
-  > kesin kat sayılarını 1c brainstorm'unda kilitleyeceğiz.
+- **2 takım** (karşılıklı koltuklar 0&2 vs 1&3). Her oyuncu **bireysel açar**;
+  partnerin açması seni açmış saymaz. Takım el puanı = aşağıdaki kurala göre.
+- **Bitiren takım:**
+  - **Normal bitiş (m=1):** takımın el puanı **0** (bitiren bonusu ve partnerin
+    elde-kalan cezası birbirini götürür → nötr).
+  - **Özel bitiş (m>1: okey/elden/çift ve kombinasyonları):** takıma **−101 · m**
+    (≈ −202 / −404 / −808); partnerin elde-kalan cezası yine **bağışlanır**.
+- **Kaybeden takım:** iki üyenin cezaları **ayrı ayrı** hesaplanıp **toplanır**
+  (her üye: elde kalan taş · m, veya açmamışsa 202 · m; + elde-okey +101; + besleme).
+- > Not (eşsiz↔eşli farkı): eşsizde **normal bitişte bile** bitiren −101 alır; eşlide
+  > normal bitişte takım **0**'dır (−101 yalnız özel bitişte gelir). Bu kasıtlı; 1c
+  > spec incelemesinde teyit edilecek.
 
-## EV KURALI — ONAY BEKLİYOR (1c'de kilitlenecek: kalan ince ayarlar)
+## Katlamalının skora etkisi (KARARLAŞTIRILDI)
 
-- **Çarpan merdiveni kesin sayıları:** elden/okey/çift/çift-okey bitişlerin tam kat
-  sayıları (kaynaklar 2× / 4× ağırlıklı; çift-okey'de 404→808 zinciri geçen kaynak var).
-- **Açmayan cezası üst basamakları:** temel **202**; elden/okey bitişte **404**;
-  çift-okey bitişte daha yüksek mi?
-- **Katlamalı puan çarpanı** (açış eskalasyonunun skora yansıması) ve **eşe-katlamalı /
-  eşe-katlamasız** varyant farkları.
-
-> Bu bölüm 1c brainstorm'unda doğrulanıp yukarı (KESİN) taşınacak.
+- **Katlamalı yalnız açış eşiğini** etkiler (1b'de uygulandı: sonraki açan öncekini
+  geçer). **El sonu puanına ek çarpan getirmez** — puan katlamasızla aynı hesaplanır.
 
 ---
 
