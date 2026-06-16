@@ -9,7 +9,7 @@ export function Room({ view, socket, onLeave }: { view: PlayerView; socket: Game
   const canStart = isOwner && room.status === "waiting" && room.players.length === room.capacity;
   return (
     <div>
-      <h2>Oda: {room.code}</h2>
+      <h2>Oda: <span data-testid="room-code">{room.code}</span></h2>
       <p>Durum: {room.status}</p>
       <p>Oyuncular ({room.players.length}/{room.capacity}):</p>
       <ul>
