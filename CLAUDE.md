@@ -182,3 +182,26 @@ Bunlar dile özel değil, mühendislik disiplinidir — TypeScript'te de aynen g
 - Dağıtım/deploy nereye?
 
 Bunlar şimdi çözülmek zorunda değil; Okey 101'in çekirdeği çıkınca netleşir.
+
+## Mevcut durum (2026-06-16)
+
+Okey 101 **baştan sona oynanabilir** (master'da, 164 birim + 3 Playwright E2E testi yeşil).
+Tasarım/plan dokümanları: `docs/okey-101-rules.md` (kanonik kurallar) + `docs/superpowers/specs/`
++ `docs/superpowers/plans/`.
+
+Tamamlanan dilimler:
+- **1a** saf primitifler (taş/deste/dağıtım/per/çift/puan) — `server/src/games/okey/`
+- **1b** saf tur motoru (`applyMove`, `toOkeyPlayerView`, `HandOutcome`)
+- **1c** puanlama + maç döngüsü + eşe-katlama (`scoreHand`, `match.ts`)
+- **2a** sunucu entegrasyonu (`session.ts`, `handlers.ts`, `contract.ts` — socket, çok-el,
+  turn-timeout, reconnect)
+- **2b** istemci masası (`client/src/games/okey/` + Room/App teli)
+- **Botlar v1** — güvenli auto-play (LLM'siz); oda "Botlarla Doldur"
+- **2c** Playwright E2E (`e2e/`, `pnpm test:e2e`): smoke + solo-vs-bots + iki-tarayıcı lobi
+
+Sıradaki olası işler (hiçbiri başlanmadı):
+- **Akıllı (sezgisel) bot** — per/çift arayıp açan/bitebilen bot (yine LLM'siz; ayrı dilim).
+- Git **remote** kurulup push (kullanıcı GitHub hesabı açınca).
+- Dağıtıcı rotasyonu, oyun geçmişi/DB, deploy, reconnect E2E, görsel cila, UNO vb.
+
+> Git remote henüz yok; tüm iş localde master'a `--no-ff` ile merge edildi.
