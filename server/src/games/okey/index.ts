@@ -13,3 +13,5 @@ export * from "./setup.js";
 export * from "./opening.js";
 export * from "./view.js";
 export { applyMove } from "./apply.js";
+export * from "./scoring.js";
+export * from "./match.js";
