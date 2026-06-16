@@ -245,6 +245,18 @@ function findPairs(hand: readonly OkeyTile[], okey: NumberedTile): OkeyTile[][] 
   return pairs;
 }
 
+function findProcessTarget(
+  tableMelds: OkeyGameState["tableMelds"],
+  tile: OkeyTile,
+  okey: NumberedTile,
+): string | null {
+  for (const m of tableMelds) {
+    if (m.kind === "pair") continue;
+    if (isValidMeld([...m.tiles, tile], okey)) return m.id;
+  }
+  return null;
+}
+
 function decideAct(state: OkeyGameState, seat: number): Move[] {
   const okey = state.okey;
   const me = state.players[seat]!;
@@ -253,6 +265,17 @@ function decideAct(state: OkeyGameState, seat: number): Move[] {
 
   const tableTiles = new Map<string, OkeyTile[]>();
   for (const m of state.tableMelds) if (m.kind !== "pair") tableTiles.set(m.id, [...m.tiles]);
+
+  // 0. pendingFloorTile varsa önce onu masaya işle (yoksa atış legal olmaz)
+  if (state.pendingFloorTile !== null) {
+    const floor = state.pendingFloorTile;
+    const targetId = findProcessTarget(state.tableMelds, floor, okey);
+    if (targetId === null) return []; // güvenli değil; çağıran fallback'e düşsün
+    moves.push({ kind: "processToMeld", meldId: targetId, tiles: [floor] });
+    hand = removeTiles(hand, [floor]);
+    const cur = tableTiles.get(targetId);
+    if (cur) tableTiles.set(targetId, [...cur, floor]);
+  }
 
   let opened = me.opened;
   let openMode: "melds" | "pairs" | null = me.openMode;
@@ -320,9 +343,21 @@ function decideAct(state: OkeyGameState, seat: number): Move[] {
   return moves;
 }
 
+function decideDraw(state: OkeyGameState, seat: number): Move {
+  const me = state.players[seat]!;
+  if (me.opened && me.openMode !== "pairs") {
+    const prev = (seat + 3) % 4;
+    const pile = state.discards[prev]!;
+    const top = pile[pile.length - 1];
+    if (top && findProcessTarget(state.tableMelds, top, state.okey) !== null) {
+      return { kind: "drawFromDiscard" };
+    }
+  }
+  return { kind: "drawFromPile" };
+}
+
 export function botMoves(state: OkeyGameState, seat: number): Move[] {
   if (state.status !== "playing" || state.turn !== seat) return [];
-  if (state.phase === "draw") return [{ kind: "drawFromPile" }];
-  if (state.pendingFloorTile !== null) return [];
+  if (state.phase === "draw") return [decideDraw(state, seat)];
   return decideAct(state, seat);
 }

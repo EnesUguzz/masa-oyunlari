@@ -164,4 +164,38 @@ describe("botMoves", () => {
     const s = gs({ players: [ph(0, []), ph(1, [numbered("blue", 4)]), ph(2, []), ph(3, [])], phase: "act", turn: 1 });
     expect(botMoves(s, 0)).toEqual([]);
   });
+
+  it("açıkken, üstteki atılan taş mevcut bir per'e ekleniyorsa discard'tan çeker", () => {
+    const tableMeld = { id: "m1", owner: 1, kind: "run" as const, tiles: [numbered("red", 8), numbered("red", 9), numbered("red", 10)] };
+    const s = gs({
+      players: [ph(0, [numbered("blue", 2), numbered("blue", 3)], { opened: true, openMode: "melds", openScore: 101 }), ph(1, []), ph(2, []), ph(3, [])],
+      phase: "draw",
+      discards: [[], [], [], [numbered("red", 7)]],
+      tableMelds: [tableMeld],
+    });
+    expect(botMoves(s, 0)).toEqual([{ kind: "drawFromDiscard" }]);
+  });
+
+  it("taş hemen kullanılamıyorsa desteden çeker", () => {
+    const s = gs({
+      players: [ph(0, [numbered("blue", 2)], { opened: true, openMode: "melds", openScore: 101 }), ph(1, []), ph(2, []), ph(3, [])],
+      phase: "draw",
+      discards: [[], [], [], [numbered("yellow", 13)]],
+      tableMelds: [{ id: "m1", owner: 1, kind: "set", tiles: [numbered("red", 5), numbered("blue", 5), numbered("black", 5)] }],
+    });
+    expect(botMoves(s, 0)).toEqual([{ kind: "drawFromPile" }]);
+  });
+
+  it("pendingFloorTile'ı önce ilgili per'e işler, sonra atar", () => {
+    const floor = numbered("red", 7);
+    const s = gs({
+      players: [ph(0, [floor, numbered("blue", 2), numbered("blue", 3)], { opened: true, openMode: "melds", openScore: 101 }), ph(1, []), ph(2, []), ph(3, [])],
+      phase: "act",
+      pendingFloorTile: floor,
+      tableMelds: [{ id: "m1", owner: 1, kind: "run", tiles: [numbered("red", 8), numbered("red", 9), numbered("red", 10)] }],
+    });
+    const moves = botMoves(s, 0);
+    expect(moves[0]).toEqual({ kind: "processToMeld", meldId: "m1", tiles: [floor] });
+    expect(moves[moves.length - 1]!.kind).toBe("discard");
+  });
 });
