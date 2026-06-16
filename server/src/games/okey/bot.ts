@@ -1,4 +1,4 @@
-import type { OkeyTile, NumberedTile } from "./tile.js";
+import type { OkeyTile, NumberedTile, OkeyColor } from "./tile.js";
 import { isWildcard } from "./okey.js";
 import { isValidMeld } from "./meld.js";
 import { meldValue } from "./points.js";
@@ -11,8 +11,8 @@ export interface Decomposition {
 
 export type DecomposeGoal = "maxValue" | "maxTilesUsed";
 
-const COLOR_ORDER: Record<string, number> = { red: 0, yellow: 1, black: 2, blue: 3 };
-const NODE_CAP = 50000;
+const COLOR_ORDER: Record<OkeyColor, number> = { red: 0, yellow: 1, black: 2, blue: 3 };
+const NODE_CAP = 200000;
 
 export function tileKey(t: OkeyTile): string {
   return t.kind === "fakeJoker" ? "fake" : `${t.color}:${t.value}`;
@@ -33,7 +33,7 @@ export function removeTiles(hand: readonly OkeyTile[], remove: readonly OkeyTile
 
 function cmpNatural(a: NumberedTile, b: NumberedTile): number {
   if (a.value !== b.value) return a.value - b.value;
-  return (COLOR_ORDER[a.color] ?? 0) - (COLOR_ORDER[b.color] ?? 0);
+  return COLOR_ORDER[a.color] - COLOR_ORDER[b.color];
 }
 
 function combinations<T>(arr: readonly T[], k: number): T[][] {
@@ -78,7 +78,7 @@ export function decompose(
     for (const i of natOrder) if (!used[i]) return i;
     return -1;
   };
-  const natAt = (color: string, value: number): number => {
+  const natAt = (color: OkeyColor, value: number): number => {
     for (const i of natOrder) {
       if (used[i]) continue;
       const t = tiles[i] as NumberedTile;
@@ -87,13 +87,28 @@ export function decompose(
     return -1;
   };
 
+  // Optimistic upper bounds for branch-and-bound pruning.
+  const remainingTiles = (): number => {
+    let c = 0;
+    for (let i = 0; i < n; i++) if (!used[i]) c++;
+    return c;
+  };
+  const remainingValuePotential = (): number => {
+    let v = 0;
+    for (let i = 0; i < n; i++) {
+      if (used[i]) continue;
+      v += wildFlag[i] ? 13 : (tiles[i] as NumberedTile).value;
+    }
+    return v;
+  };
+
   const meldsContaining = (anchor: number): number[][] => {
     const a = tiles[anchor] as NumberedTile;
     const result: number[][] = [];
     const wilds = unusedWilds();
 
     // sets: aynı değer, farklı renkler
-    const byColor = new Map<string, number>();
+    const byColor = new Map<OkeyColor, number>();
     for (const i of natOrder) {
       if (used[i] || i === anchor) continue;
       const u = tiles[i] as NumberedTile;
@@ -101,7 +116,8 @@ export function decompose(
     }
     const otherColorNats = [...byColor.values()];
     for (let o = 0; o <= otherColorNats.length; o++) {
-      for (const others of combinations(otherColorNats, o)) {
+      const combos = combinations(otherColorNats, o);
+      for (const others of combos) {
         for (let w = 0; w <= wilds.length; w++) {
           const size = 1 + o + w;
           if (size < 3 || size > 4) continue;
@@ -139,15 +155,18 @@ export function decompose(
       best.groups = cur.map((g) => [...g]);
     }
     if (nodes > NODE_CAP) return;
+
+    // Branch-and-bound: if even the optimistic bound cannot beat the best, stop.
+    if (goal === "maxTilesUsed") {
+      if (curTiles + remainingTiles() < best.tilesUsed) return;
+    } else {
+      if (curValue + remainingValuePotential() < best.value) return;
+    }
+
     const anchor = firstUnusedNatural();
     if (anchor === -1) return;
 
-    // Branch A: anchor leftover
-    used[anchor] = true;
-    recurse();
-    used[anchor] = false;
-
-    // Branch B: anchor içeren her per
+    // Branch B first (anchor içeren her per) so strong solutions tighten the bound early.
     for (const meld of meldsContaining(anchor)) {
       const tilesArr = meld.map((i) => tiles[i]!);
       const v = meldValue(tilesArr, okey);
@@ -161,6 +180,11 @@ export function decompose(
       cur.pop();
       for (const i of meld) used[i] = false;
     }
+
+    // Branch A: anchor leftover
+    used[anchor] = true;
+    recurse();
+    used[anchor] = false;
   };
 
   recurse();
