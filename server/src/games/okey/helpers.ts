@@ -15,7 +15,6 @@ function cloneOutcome(o: HandOutcome): HandOutcome {
     finishType: o.finishType ? { ...o.finishType } : null,
     leftovers: o.leftovers.map((l) => ({ seat: l.seat, tiles: cloneTiles(l.tiles) })),
     feedingEvents: o.feedingEvents.map((e) => ({ ...e })),
-    isVoid: o.isVoid,
     deckExhausted: o.deckExhausted,
   };
 }

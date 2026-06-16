@@ -10,7 +10,6 @@ import { AlreadyOpenedError, OpeningThresholdNotMetError, NotOpenedError, ModeLo
 import {
   current, requirePhase, removeTilesFromHand, consumeFloorIfLaid, recordFeeding, meldThreshold, pairThreshold,
 } from "./helpers.js";
-import { buildVoidOutcome } from "./outcome.js";
 
 function meldKind(tiles: readonly OkeyTile[], okey: OkeyGameState["okey"]): "run" | "set" {
   return isValidRun(tiles, okey) ? "run" : "set";
@@ -95,11 +94,6 @@ export function applyOpenPairs(s: OkeyGameState, pairs: OkeyTile[][]): void {
   me.pairCount = n;
   me.openedOnTurn = s.turnSeq;
   s.highestOpenPairs = s.highestOpenPairs === null ? n : Math.max(s.highestOpenPairs, n);
-
-  if (s.players.filter((p) => p.openMode === "pairs").length === 4) {
-    s.status = "void";
-    s.outcome = buildVoidOutcome(s);
-  }
 }
 
 export function applyProcessToMeld(s: OkeyGameState, meldId: string, tiles: OkeyTile[]): void {

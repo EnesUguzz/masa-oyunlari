@@ -39,12 +39,11 @@ export interface HandOutcome {
   finishType: FinishType | null;
   leftovers: { seat: number; tiles: OkeyTile[] }[];
   feedingEvents: FeedingEvent[];
-  isVoid: boolean;
   deckExhausted: boolean;
 }
 
 export type GamePhase = "draw" | "act";
-export type GameStatus = "playing" | "finished" | "void";
+export type GameStatus = "playing" | "finished";
 
 export interface OkeyGameState {
   config: OkeyGameConfig;
