@@ -66,4 +66,29 @@ describe("okey handlers", () => {
     clock.advance(1000);
     expect(emits.length).toBeGreaterThan(before);
   });
+
+  it("auto-plays bot seats after a human move so the turn returns to the human", () => {
+    const rooms = new RoomService(new InMemoryRoomRepository(), new SeededRng(1), 4);
+    const clock = new FakeClock();
+    const connections = new ConnectionManager(clock, 30000, () => {});
+    const store = new OkeySessionStore();
+    const emits: { sid: string; ev: string; payload: unknown }[] = [];
+    const io = { to: (sid: string) => ({ emit: (ev: string, payload: unknown) => emits.push({ sid, ev, payload }) }) } as unknown as Parameters<typeof registerOkeyHandlers>[3]["io"];
+    const owner = { id: "p0" as PlayerId, nickname: "N0" };
+    const room = rooms.createRoom(owner);
+    rooms.addBots(room.code, 3);
+    connections.attach("s_p0", owner.id);
+    const deps = { io, rooms, connections, store, rng: new SeededRng(9), clock, turnTimeoutMs: 1000, logger };
+    const socket = makeSocket();
+    registerOkeyHandlers(socket as unknown as Parameters<typeof registerOkeyHandlers>[0], () => owner, () => room.code, deps);
+
+    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 7 });
+    const lastState = (): { view: { turn: number; phase: string; yourHand: { kind: string; color?: string; value?: number }[] } } =>
+      emits.filter((e) => e.sid === "s_p0" && e.ev === OkeyServerEvents.state).at(-1)!.payload as never;
+    socket.fire(OkeyClientEvents.move, { move: { kind: "drawFromPile" } });
+    const hand = lastState().view.yourHand;
+    socket.fire(OkeyClientEvents.move, { move: { kind: "discard", tile: hand[hand.length - 1] } });
+    expect(lastState().view.turn).toBe(0);
+    expect(lastState().view.phase).toBe("draw");
+  });
 });

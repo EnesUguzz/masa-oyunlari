@@ -74,7 +74,17 @@ export function registerOkeyHandlers(
     }
   };
 
-  const finishOrArm = (code: string): void => {
+  const driveBots = (code: string): void => {
+    const session = store.get(code);
+    if (!session) return;
+    let guard = 0;
+    while (!session.isOver && session.isBotSeat(session.currentSeat) && guard++ < 10000) {
+      session.autoPlayTurn(session.currentSeat);
+    }
+  };
+
+  const advance = (code: string): void => {
+    driveBots(code);
     const session = store.get(code);
     if (!session) return;
     if (session.isOver) {
@@ -98,7 +108,7 @@ export function registerOkeyHandlers(
         const live = store.get(code);
         if (!live || live.isOver) return;
         live.autoPlayTurn(seat);
-        finishOrArm(code);
+        advance(code);
       } catch (err) {
         logger.error({ err }, "okey turn-timeout failed");
       }
@@ -118,8 +128,7 @@ export function registerOkeyHandlers(
       const session = new OkeySession(makeConfig(payload), room.players, rng);
       store.set(code, session);
       rooms.setStatus(code, "playing");
-      broadcast(code, OkeyServerEvents.state);
-      armTimer(code);
+      advance(code);
     } catch (err) {
       fail(err);
     }
@@ -136,7 +145,7 @@ export function registerOkeyHandlers(
       if (seat === null) throw new ValidationError("You are not seated in this game");
       session.apply(seat, move);
       store.timer(code, clock).clear();
-      finishOrArm(code);
+      advance(code);
     } catch (err) {
       fail(err);
     }
