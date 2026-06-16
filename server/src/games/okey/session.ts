@@ -80,15 +80,15 @@ export class OkeySession {
     return {
       view: toOkeyPlayerView(this.hand, seat),
       match: {
-        seatTotals: this.match.seatTotals,
-        teamTotals: this.match.teamTotals,
+        seatTotals: [...this.match.seatTotals],
+        teamTotals: this.match.teamTotals === null ? null : [...this.match.teamTotals],
         handsPlayed: this.match.handsPlayed,
         targetHands: this.config.targetHands,
         status: this.match.status,
         winner: this.match.winner,
       },
       handNumber: this.handNumber,
-      seating: this.seats,
+      seating: this.seats.map((s) => ({ ...s })),
     };
   }
 }
