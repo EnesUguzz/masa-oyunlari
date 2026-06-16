@@ -8,6 +8,11 @@ import {
   type JoinRoomPayload,
   type IdentifyPayload,
 } from "@masa/shared";
+import type {
+  OkeyTableView,
+  Move,
+  StartGameConfig,
+} from "../games/okey/types.js";
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL ?? "http://localhost:3001";
 
@@ -15,6 +20,8 @@ export interface ServerListeners {
   onIdentified: (p: IdentifiedPayload) => void;
   onRoomState: (v: PlayerView) => void;
   onError: (e: ErrorEventPayload) => void;
+  onOkeyState?: (tv: OkeyTableView) => void;
+  onOkeyEnded?: (tv: OkeyTableView) => void;
 }
 
 /** Thin typed wrapper around socket.io-client. */
@@ -26,6 +33,12 @@ export class GameSocket {
     this.socket.on(ServerEvents.identified, listeners.onIdentified);
     this.socket.on(ServerEvents.roomState, listeners.onRoomState);
     this.socket.on(ServerEvents.errorEvent, listeners.onError);
+    if (listeners.onOkeyState) {
+      this.socket.on("okey:state", listeners.onOkeyState);
+    }
+    if (listeners.onOkeyEnded) {
+      this.socket.on("okey:ended", listeners.onOkeyEnded);
+    }
   }
 
   identify(payload: IdentifyPayload): void {
@@ -39,5 +52,13 @@ export class GameSocket {
   }
   leaveRoom(): void {
     this.socket.emit(ClientEvents.leaveRoom, {});
+  }
+
+  startGame(config: StartGameConfig): void {
+    this.socket.emit("okey:startGame", config);
+  }
+
+  sendMove(move: Move): void {
+    this.socket.emit("okey:move", { move });
   }
 }

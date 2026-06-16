@@ -5,12 +5,15 @@ import { loadToken, saveToken } from "./token.js";
 import { NicknameEntry } from "./core/NicknameEntry.js";
 import { Lobby } from "./core/Lobby.js";
 import { Room } from "./core/Room.js";
+import type { OkeyTableView } from "./games/okey/types.js";
+import { OkeyTable } from "./games/okey/OkeyTable.js";
 
-type Screen = "nickname" | "lobby" | "room";
+type Screen = "nickname" | "lobby" | "room" | "table";
 
 export function App() {
   const [screen, setScreen] = useState<Screen>("nickname");
   const [view, setView] = useState<PlayerView | null>(null);
+  const [table, setTable] = useState<OkeyTableView | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const socket = useMemo(
@@ -27,6 +30,8 @@ export function App() {
           setScreen("room");
         },
         onError: (e) => setError(`${e.code}: ${e.message}`),
+        onOkeyState: (tv) => { setError(null); setTable(tv); setScreen("table"); },
+        onOkeyEnded: (tv) => { setError(null); setTable(tv); setScreen("table"); },
       }),
     [],
   );
@@ -55,12 +60,12 @@ export function App() {
       {screen === "room" && view && (
         <Room
           view={view}
-          onLeave={() => {
-            socket.leaveRoom();
-            setView(null);
-            setScreen("lobby");
-          }}
+          socket={socket}
+          onLeave={() => { socket.leaveRoom(); setView(null); setScreen("lobby"); }}
         />
+      )}
+      {screen === "table" && table && (
+        <OkeyTable table={table} onMove={(m) => socket.sendMove(m)} onLeave={() => { setTable(null); setScreen("lobby"); }} />
       )}
     </main>
   );

@@ -7,7 +7,7 @@
     "dev": "concurrently -n server,client -c blue,green \"pnpm --filter @masa/server dev\" \"pnpm --filter @masa/client dev\"",
     "build": "pnpm --filter @masa/shared build && pnpm --filter @masa/server build && pnpm --filter @masa/client build",
     "typecheck": "tsc -b shared server client --verbose",
-    "test": "pnpm --filter @masa/server test --run",
+    "test": "pnpm --filter @masa/server test --run && pnpm --filter @masa/client test --run",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
