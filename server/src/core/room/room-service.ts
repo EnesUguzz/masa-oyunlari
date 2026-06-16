@@ -69,6 +69,25 @@ export class RoomService {
     return this.repo.findByPlayer(playerId);
   }
 
+  addBots(code: RoomCode, count: number): Room | undefined {
+    const room = this.repo.get(code);
+    if (!room) return undefined;
+    const free = room.capacity - room.players.length;
+    const toAdd = Math.max(0, Math.min(count, free));
+    for (let i = 0; i < toAdd; i++) {
+      const n = room.players.filter((p) => p.isBot).length + 1;
+      room.players.push({ id: this.botId(), nickname: `Bot ${n}`, isBot: true });
+    }
+    this.repo.update(room);
+    return room;
+  }
+
+  private botId(): PlayerId {
+    let s = "bot_";
+    for (let i = 0; i < 6; i++) s += CODE_ALPHABET[this.rng.nextInt(CODE_ALPHABET.length)]!;
+    return s as PlayerId;
+  }
+
   private generateUniqueCode(): RoomCode {
     for (let attempt = 0; attempt < 1000; attempt++) {
       let code = "";

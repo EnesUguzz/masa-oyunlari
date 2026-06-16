@@ -6,6 +6,7 @@ export const ClientEvents = {
   createRoom: "createRoom",
   joinRoom: "joinRoom",
   leaveRoom: "leaveRoom",
+  addBots: "addBots",
 } as const;
 
 /** Server -> Client event names. */
@@ -40,6 +41,9 @@ export type JoinRoomPayload = z.infer<typeof joinRoomSchema>;
 
 export const leaveRoomSchema = z.object({}).strict();
 export type LeaveRoomPayload = z.infer<typeof leaveRoomSchema>;
+
+export const addBotsSchema = z.object({}).strict();
+export type AddBotsPayload = z.infer<typeof addBotsSchema>;
 
 // ---- Server -> Client payload schemas (for documentation/shared typing) ----
 

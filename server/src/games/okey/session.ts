@@ -26,7 +26,7 @@ export class OkeySession {
     private readonly rng: Rng,
   ) {
     if (seating.length !== 4) throw new InvalidMoveError("okey requires exactly 4 players");
-    this.seats = seating.map((p, seat) => ({ seat, playerId: p.id, nickname: p.nickname }));
+    this.seats = seating.map((p, seat) => ({ seat, playerId: p.id, nickname: p.nickname, isBot: p.isBot ?? false }));
     this.ids = seating.map((p) => p.id);
     this.match = createMatch(config, this.ids);
     this.hand = createHand(config, this.ids, rng);
@@ -45,6 +45,10 @@ export class OkeySession {
   seatOf(playerId: PlayerId): number | null {
     const found = this.seats.find((s) => s.playerId === playerId);
     return found ? found.seat : null;
+  }
+
+  isBotSeat(seat: number): boolean {
+    return this.seats[seat]?.isBot ?? false;
   }
 
   apply(bySeat: number, move: Move): void {

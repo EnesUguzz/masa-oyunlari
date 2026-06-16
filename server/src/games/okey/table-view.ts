@@ -15,6 +15,7 @@ export interface SeatInfo {
   seat: number;
   playerId: PlayerId;
   nickname: string;
+  isBot: boolean;
 }
 
 export interface OkeyTableView {
