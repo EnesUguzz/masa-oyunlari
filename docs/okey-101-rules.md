@@ -65,8 +65,9 @@
   açtıysa çift açamaz. Sonradan mod değiştiremez.
 - **Çifte giden taş alamaz (KESİN):** Çifte giden oyuncu **yerden / rakip taşını
   alamaz**, yalnız kapalı desteden kendi çektiğiyle ilerler.
-- **Masada en fazla 3 oyuncu çifte gidebilir (KESİN):** 4 oyuncunun **dördü de**
-  çifte giderse o **el iptal/bozulur**.
+- **Çifte giden oyuncu sayısında sınır YOK (KARARLAŞTIRILDI):** Dört oyuncu da çifte
+  gidebilir; "4 çift açılırsa el iptal" diye bir kural **yoktur**. (Önceki araştırma
+  konsensüsü bu noktada yanlıştı; oyuncu sürümünde böyle bir iptal yok.)
 - **Gösterge taşıyla +1 çift (KARARLAŞTIRILDI):** Gösterge değerinin destede **2 kopyası**
   vardır; biri açık gösterge olarak masada durur (oyuna girmez), **ikinci kopya** oyundadır.
   Bu ikinci kopya bir oyuncunun elindeyse, **çift modunda** onu **elindeki herhangi bir
@@ -126,9 +127,9 @@
   **taş değeri × 10** (alan seri) / **× 20** (alan çift). (1b olayı kaydeder.)
 - Okey atma / yerden kural-dışı okey alma / 101-altı açma cezaları: **101** (sabit).
 
-**Deste tükenmesi / 4-çift iptali:** bitiren yok → bitiş çarpanı yok; her oyuncu
-elde kalan taş değerini (m=1) ceza alır (açmamışsa 202). İptalde (`isVoid`) el
-puansız da sayılabilir — 1c tasarımında netleşir.
+**Deste tükenmesi:** bitiren olmadan deste biterse o el **herkes 202 ceza** alır
+(sabit, m yok) ve maç sonraki ele devam eder. **4-çift iptali yoktur** (yukarı bak);
+1b'deki `void`/`isVoid` mantığı 1c'de motordan kaldırılır.
 
 ---
 
