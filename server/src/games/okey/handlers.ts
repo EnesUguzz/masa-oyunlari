@@ -93,7 +93,11 @@ export function registerOkeyHandlers(
     const seat = session.currentSeat;
     store.timer(code, clock).start(turnTimeoutMs, () => {
       try {
-        session.autoPlayTurn(seat);
+        // Re-fetch from the store: a concurrent move may have ended the game and
+        // removed the session before this timer fired.
+        const live = store.get(code);
+        if (!live || live.isOver) return;
+        live.autoPlayTurn(seat);
         finishOrArm(code);
       } catch (err) {
         logger.error({ err }, "okey turn-timeout failed");
