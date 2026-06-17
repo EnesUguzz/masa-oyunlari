@@ -1,6 +1,6 @@
 import type { NumberedTile, OkeyTile } from "./tile.js";
-import { MAX_VALUE, MIN_VALUE, isNumbered } from "./tile.js";
-import { isWildcard } from "./okey.js";
+import { MAX_VALUE, MIN_VALUE } from "./tile.js";
+import { naturalValue } from "./okey.js";
 
 function partition(
   tiles: readonly OkeyTile[],
@@ -9,12 +9,11 @@ function partition(
   const naturals: NumberedTile[] = [];
   let wild = 0;
   for (const t of tiles) {
-    if (isWildcard(t, okey)) {
-      wild++;
-      continue;
-    }
-    // A non-wildcard tile is always a plain numbered tile.
-    if (isNumbered(t)) naturals.push(t);
+    // Only the real okey tile is a wildcard; the fake joker resolves to the
+    // concrete okey-value tile (a natural), see naturalValue.
+    const nat = naturalValue(t, okey);
+    if (nat === null) wild++;
+    else naturals.push(nat);
   }
   return { naturals, wild };
 }

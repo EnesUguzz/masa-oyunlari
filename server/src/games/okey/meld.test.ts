@@ -24,13 +24,19 @@ describe("isValidRun", () => {
     expect(isValidRun([numbered("red", 5), numbered("red", 6)], OKEY)).toBe(false);
   });
 
-  it("fills gaps and ends with wildcards (fake joker and the okey tile)", () => {
-    expect(isValidRun([numbered("red", 5), fakeJoker(), numbered("red", 7)], OKEY)).toBe(true);
-    expect(isValidRun([numbered("red", 5), numbered("red", 6), numbered("black", 1)], OKEY)).toBe(true);
+  it("fills gaps and ends with the wildcard (the okey tile)", () => {
+    expect(isValidRun([numbered("red", 5), numbered("black", 1), numbered("red", 7)], OKEY)).toBe(true); // black 1 (okey) = 6
+    expect(isValidRun([numbered("red", 5), numbered("red", 6), numbered("black", 1)], OKEY)).toBe(true); // black 1 (okey) = 7
+  });
+
+  it("treats the fake joker as the concrete okey-value tile, not a wildcard", () => {
+    // OKEY = black 1, so a fake joker is exactly a black 1: it only fits where black 1 fits.
+    expect(isValidRun([fakeJoker(), numbered("black", 2), numbered("black", 3)], OKEY)).toBe(true); // black 1-2-3
+    expect(isValidRun([numbered("red", 5), fakeJoker(), numbered("red", 7)], OKEY)).toBe(false); // black 1 cannot be the "6"
   });
 
   it("rejects a run made entirely of wildcards", () => {
-    expect(isValidRun([fakeJoker(), fakeJoker(), fakeJoker()], OKEY)).toBe(false);
+    expect(isValidRun([numbered("black", 1), numbered("black", 1), numbered("black", 1)], OKEY)).toBe(false);
   });
 });
 
@@ -50,14 +56,14 @@ describe("isValidSet", () => {
     expect(isValidSet([numbered("red", 7), numbered("yellow", 8), numbered("black", 7)], OKEY)).toBe(false);
     expect(
       isValidSet(
-        [numbered("red", 7), numbered("yellow", 7), numbered("black", 7), numbered("blue", 7), fakeJoker()],
+        [numbered("red", 7), numbered("yellow", 7), numbered("black", 7), numbered("blue", 7), numbered("black", 1)],
         OKEY,
       ),
     ).toBe(false);
   });
 
-  it("fills a missing color with a wildcard", () => {
-    expect(isValidSet([numbered("red", 7), numbered("yellow", 7), fakeJoker()], OKEY)).toBe(true);
+  it("fills a missing color with a wildcard (the okey tile)", () => {
+    expect(isValidSet([numbered("red", 7), numbered("yellow", 7), numbered("black", 1)], OKEY)).toBe(true);
   });
 });
 
@@ -67,15 +73,15 @@ describe("meldRepresentedValues", () => {
   });
 
   it("forces a wildcard to the gap value", () => {
-    expect(meldRepresentedValues([numbered("red", 5), fakeJoker(), numbered("red", 7)], OKEY)).toEqual([5, 6, 7]);
+    expect(meldRepresentedValues([numbered("red", 5), numbered("black", 1), numbered("red", 7)], OKEY)).toEqual([5, 6, 7]);
   });
 
   it("places trailing wildcards at the highest feasible values (max sum)", () => {
-    expect(meldRepresentedValues([numbered("red", 6), numbered("red", 7), fakeJoker()], OKEY)).toEqual([6, 7, 8]);
+    expect(meldRepresentedValues([numbered("red", 6), numbered("red", 7), numbered("black", 1)], OKEY)).toEqual([6, 7, 8]);
   });
 
   it("values a set at its common number", () => {
-    expect(meldRepresentedValues([numbered("red", 7), numbered("yellow", 7), fakeJoker()], OKEY)).toEqual([7, 7, 7]);
+    expect(meldRepresentedValues([numbered("red", 7), numbered("yellow", 7), numbered("black", 1)], OKEY)).toEqual([7, 7, 7]);
   });
 
   it("returns null for an invalid meld", () => {

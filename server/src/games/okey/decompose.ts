@@ -1,5 +1,5 @@
 import type { OkeyTile, NumberedTile, OkeyColor } from "./tile.js";
-import { isWildcard } from "./okey.js";
+import { naturalValue } from "./okey.js";
 import { isValidMeld } from "./meld.js";
 import { meldValue } from "./points.js";
 
@@ -52,11 +52,14 @@ export function decompose(
 ): Decomposition {
   const n = tiles.length;
   const used: boolean[] = new Array(n).fill(false);
-  const wildFlag: boolean[] = tiles.map((t) => isWildcard(t, okey));
+  // The concrete numbered tile each tile contributes (fake joker -> okey-value
+  // tile); null means it is a wildcard (the real okey tile).
+  const nat: (NumberedTile | null)[] = tiles.map((t) => naturalValue(t, okey));
+  const wildFlag: boolean[] = nat.map((x) => x === null);
   const natOrder: number[] = tiles
     .map((_, i) => i)
     .filter((i) => !wildFlag[i])
-    .sort((a, b) => cmpNatural(tiles[a] as NumberedTile, tiles[b] as NumberedTile));
+    .sort((a, b) => cmpNatural(nat[a]!, nat[b]!));
 
   const best = { groups: [] as OkeyTile[][], value: 0, tilesUsed: 0 };
   const cur: OkeyTile[][] = [];
@@ -81,7 +84,7 @@ export function decompose(
   const natAt = (color: OkeyColor, value: number): number => {
     for (const i of natOrder) {
       if (used[i]) continue;
-      const t = tiles[i] as NumberedTile;
+      const t = nat[i]!;
       if (t.color === color && t.value === value) return i;
     }
     return -1;
@@ -97,13 +100,13 @@ export function decompose(
     let v = 0;
     for (let i = 0; i < n; i++) {
       if (used[i]) continue;
-      v += wildFlag[i] ? 13 : (tiles[i] as NumberedTile).value;
+      v += wildFlag[i] ? 13 : nat[i]!.value;
     }
     return v;
   };
 
   const meldsContaining = (anchor: number): number[][] => {
-    const a = tiles[anchor] as NumberedTile;
+    const a = nat[anchor]!;
     const result: number[][] = [];
     const wilds = unusedWilds();
 
@@ -111,7 +114,7 @@ export function decompose(
     const byColor = new Map<OkeyColor, number>();
     for (const i of natOrder) {
       if (used[i] || i === anchor) continue;
-      const u = tiles[i] as NumberedTile;
+      const u = nat[i]!;
       if (u.value === a.value && u.color !== a.color && !byColor.has(u.color)) byColor.set(u.color, i);
     }
     const otherColorNats = [...byColor.values()];

@@ -11,10 +11,11 @@ describe("isPair", () => {
   it("is false for same number but different color", () => {
     expect(isPair(numbered("red", 7), numbered("blue", 7), OKEY)).toBe(false);
   });
-  it("is true when either tile is a wildcard (fake joker or okey tile)", () => {
-    expect(isPair(fakeJoker(), numbered("red", 7), OKEY)).toBe(true);
-    expect(isPair(numbered("black", 1), numbered("red", 7), OKEY)).toBe(true);
-    expect(isPair(fakeJoker(), fakeJoker(), OKEY)).toBe(true);
+  it("the okey tile (wildcard) pairs with anything; a fake joker only pairs with the okey-value tile", () => {
+    expect(isPair(numbered("black", 1), numbered("red", 7), OKEY)).toBe(true); // okey tile is wild
+    expect(isPair(fakeJoker(), numbered("red", 7), OKEY)).toBe(false); // fake joker = black 1, not red 7
+    expect(isPair(fakeJoker(), fakeJoker(), OKEY)).toBe(true); // two black 1s pair
+    expect(isPair(fakeJoker(), numbered("black", 1), OKEY)).toBe(true); // black 1 + okey (wild)
   });
 });
 
@@ -26,8 +27,8 @@ describe("isAllPairs", () => {
     ];
     expect(isAllPairs(hand, OKEY)).toBe(true);
   });
-  it("uses wildcards to complete odd singletons", () => {
-    const hand: OkeyTile[] = [numbered("red", 7), numbered("red", 7), numbered("blue", 3), fakeJoker()];
+  it("uses wildcards (the okey tile) to complete odd singletons", () => {
+    const hand: OkeyTile[] = [numbered("red", 7), numbered("red", 7), numbered("blue", 3), numbered("black", 1)];
     expect(isAllPairs(hand, OKEY)).toBe(true);
   });
   it("is false for odd length", () => {
@@ -35,9 +36,9 @@ describe("isAllPairs", () => {
     expect(isAllPairs([numbered("red", 7), numbered("blue", 3), numbered("yellow", 4)], OKEY)).toBe(false);
   });
   it("is false when there are not enough wildcards to cover singletons", () => {
-    // two distinct singletons (R7, B3) + Y9 single + one wildcard -> 3 singles, 1 wild -> false
+    // two distinct singletons (R7, B3) + Y9 single + one wildcard (okey) -> 3 singles, 1 wild -> false
     expect(
-      isAllPairs([numbered("red", 7), numbered("blue", 3), fakeJoker(), numbered("yellow", 9)], OKEY),
+      isAllPairs([numbered("red", 7), numbered("blue", 3), numbered("black", 1), numbered("yellow", 9)], OKEY),
     ).toBe(false);
   });
 });

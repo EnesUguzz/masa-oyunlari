@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerId } from "@masa/shared";
-import { numbered, fakeJoker } from "./tile.js";
+import { numbered } from "./tile.js";
 import type { NumberedTile, OkeyTile } from "./tile.js";
 import type { OkeyGameState, PlayerHandState } from "./game-state.js";
 import { makeConfig } from "./game-config.js";
@@ -39,8 +39,8 @@ describe("validatePairsOpening", () => {
     const pairs = [pair("red", 1), pair("red", 2), pair("red", 3), pair("red", 4), pair("red", 5)];
     expect(validatePairsOpening(pairs, okey, indicator)).toBe(true);
   });
-  it("accepts a pair completed by a fake joker", () => {
-    const pairs = [[numbered("red", 1), fakeJoker()], pair("red", 2), pair("red", 3), pair("red", 4), pair("red", 5)];
+  it("accepts a pair completed by a wildcard (the okey tile)", () => {
+    const pairs = [[numbered("red", 1), numbered("red", 13)], pair("red", 2), pair("red", 3), pair("red", 4), pair("red", 5)];
     expect(validatePairsOpening(pairs, okey, indicator)).toBe(true);
   });
   it("allows the indicator tile to form ONE pair with any tile (gösterge +1)", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { numbered, fakeJoker, type OkeyTile } from "./tile.js";
+import { numbered, type OkeyTile } from "./tile.js";
 import { tileValue, meldValue, meldsTotal, canOpenWithMelds } from "./points.js";
 import { InvalidMoveError } from "../../core/errors/index.js";
 
@@ -12,8 +12,8 @@ describe("points", () => {
 
   it("meldValue sums represented values (wildcard counts as represented tile)", () => {
     expect(meldValue([numbered("red", 5), numbered("red", 6), numbered("red", 7)], OKEY)).toBe(18);
-    expect(meldValue([numbered("red", 6), numbered("red", 7), fakeJoker()], OKEY)).toBe(21);
-    expect(meldValue([numbered("red", 7), numbered("yellow", 7), fakeJoker()], OKEY)).toBe(21);
+    expect(meldValue([numbered("red", 6), numbered("red", 7), numbered("black", 1)], OKEY)).toBe(21); // okey wild = 8
+    expect(meldValue([numbered("red", 7), numbered("yellow", 7), numbered("black", 1)], OKEY)).toBe(21); // okey wild = 7
   });
 
   it("meldValue throws InvalidMoveError for an invalid meld", () => {

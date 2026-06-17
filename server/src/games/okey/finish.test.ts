@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerId } from "@masa/shared";
-import { numbered, fakeJoker } from "./tile.js";
+import { numbered } from "./tile.js";
 import type { NumberedTile, OkeyTile } from "./tile.js";
 import type { OkeyGameState, PlayerHandState } from "./game-state.js";
 import { makeConfig } from "./game-config.js";
@@ -40,9 +40,9 @@ describe("finish detection", () => {
     expect(next.outcome?.leftovers.find((l) => l.seat === 1)?.tiles.length).toBe(2);
   });
 
-  it("flags okey finish when the discarded last tile is a wildcard", () => {
-    const s = actState({ players: [player(0, [fakeJoker()], true, "melds", 1), player(1, [], true, "melds", 0), player(2, [], true, "melds", 0), player(3, [], true, "melds", 0)] });
-    const next = applyMove(s, { kind: "discard", tile: fakeJoker() }, 0);
+  it("flags okey finish when the discarded last tile is a wildcard (the okey tile)", () => {
+    const s = actState({ players: [player(0, [numbered("red", 13)], true, "melds", 1), player(1, [], true, "melds", 0), player(2, [], true, "melds", 0), player(3, [], true, "melds", 0)] });
+    const next = applyMove(s, { kind: "discard", tile: numbered("red", 13) }, 0);
     expect(next.outcome?.finishType?.okey).toBe(true);
   });
 

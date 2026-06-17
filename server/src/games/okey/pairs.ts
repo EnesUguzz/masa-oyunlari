@@ -1,10 +1,13 @@
 import type { NumberedTile, OkeyTile } from "./tile.js";
-import { isNumbered, tilesEqual } from "./tile.js";
-import { isWildcard } from "./okey.js";
+import { naturalValue } from "./okey.js";
 
 export function isPair(a: OkeyTile, b: OkeyTile, okey: NumberedTile): boolean {
-  if (isWildcard(a, okey) || isWildcard(b, okey)) return true;
-  return tilesEqual(a, b);
+  const na = naturalValue(a, okey);
+  const nb = naturalValue(b, okey);
+  // A real okey (wildcard) pairs with anything. The fake joker resolves to the
+  // concrete okey-value tile, so it only pairs with another okey-value tile.
+  if (na === null || nb === null) return true;
+  return na.color === nb.color && na.value === nb.value;
 }
 
 /** Can the whole tile bag be split into valid pairs (wildcards fill singletons)? */
@@ -14,14 +17,13 @@ export function isAllPairs(tiles: readonly OkeyTile[], okey: NumberedTile): bool
   const counts = new Map<string, number>();
   let wild = 0;
   for (const t of tiles) {
-    if (isWildcard(t, okey)) {
+    const nat = naturalValue(t, okey);
+    if (nat === null) {
       wild++;
       continue;
     }
-    if (isNumbered(t)) {
-      const key = `${t.color}:${t.value}`;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
+    const key = `${nat.color}:${nat.value}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
   let singles = 0;

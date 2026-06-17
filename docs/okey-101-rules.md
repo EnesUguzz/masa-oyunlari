@@ -28,9 +28,15 @@
 
 - **Okey** = göstergenin **bir üstü, aynı renk** (gösterge kırmızı 5 → okey kırmızı 6).
   Gösterge 13 ise okey 1 (aynı renk).
-- **Wildcard (joker) = 4 taş:** 2 sahte okey **+** okey değerindeki 2 gerçek taş.
-- Bir wildcard, perde herhangi bir taşın yerine geçebilir; **puanı, temsil ettiği
-  taşın değeridir**.
+- **Wildcard (joker) = okey değerindeki 2 gerçek taş** (örn. okey kırmızı 6 ise iki
+  kırmızı 6 taşı). Bir wildcard, perde **herhangi bir taşın** yerine geçebilir;
+  **puanı, temsil ettiği taşın değeridir**.
+- **Sahte okey wildcard DEĞİLDİR (KARARLAŞTIRILDI — kullanıcı kuralı 2026-06-17).**
+  Sahte okey, **okey-değerli taşın somut karşılığıdır**: yalnızca o taş (örn.
+  kırmızı 6) olarak kullanılabilir, başka bir sayının/rengin yerine geçemez.
+  Yani sahte okey bir perde sadece okey-değerli taşın bulunması gereken yere konabilir.
+  Puanı = okey değeridir. (Kodda `naturalValue`: sahte okey → okey-değerli somut taş;
+  gerçek okey taşı → wildcard/null.)
 
 ## Tur akışı (KESİN — çekirdek mekanik, detay 1b)
 
@@ -56,8 +62,10 @@
 ## Çift (pairs) kuralları (KESİN — 1a kısmı)
 
 - **Çift** = aynı **renk + sayı** iki taş (örn. kırmızı 7 + kırmızı 7).
-- **Wildcard çiftte herhangi bir taşla eşleşir** (4 wildcard'ın hepsi: 2 sahte okey +
-  okey değerindeki 2 taş). İki wildcard da çift sayılır.
+- **Wildcard çiftte herhangi bir taşla eşleşir** (okey değerindeki 2 gerçek taş).
+  İki wildcard da çift sayılır. **Sahte okey** ise okey-değerli somut taş olarak
+  eşleşir (yani yalnız başka bir okey-değerli taşla / wildcard ile çift yapar) —
+  herhangi bir taşla eşleşmez.
 - **Çift açış: en az 5 çift** (`minPairs=5`). Katlamasız'da sabit 5; **katlamalı'da
   artar** (önceki oyuncu 5 açtıysa sonraki ≥6, 6 açıldıysa ≥7 ...) — eskalasyon 1b'de,
   primitif `minPairs` parametreli.

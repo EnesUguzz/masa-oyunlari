@@ -7,7 +7,7 @@ import type { OkeyGameState, PlayerHandState } from "./game-state.js";
 import type { PlayerId } from "@masa/shared";
 import { makeConfig } from "./game-config.js";
 
-const okey: NumberedTile = numbered("red", 13); // wildcard = red13; fakeJoker da wild
+const okey: NumberedTile = numbered("red", 13); // wildcard = the real red 13 tile (fake joker is a concrete red 13, NOT wild)
 
 describe("decompose", () => {
   it("bir run'ı tek grup olarak bulur", () => {
@@ -26,11 +26,19 @@ describe("decompose", () => {
     expect(d.value).toBe(15);
   });
 
-  it("joker'i wildcard olarak per tamamlamada kullanır", () => {
-    const hand: OkeyTile[] = [numbered("red", 5), numbered("red", 6), fakeJoker()];
+  it("okey taşını (wildcard) per tamamlamada kullanır", () => {
+    const hand: OkeyTile[] = [numbered("red", 5), numbered("red", 6), numbered("red", 13)]; // red13 = okey (wild) -> 5-6-7
     const d = decompose(hand, okey, "maxTilesUsed");
     expect(d.tilesUsed).toBe(3);
     expect(d.groups).toHaveLength(1);
+  });
+
+  it("sahte okey somut okey-taşıdır: ardışıklığı dolduramaz", () => {
+    // fake joker = red 13, so [red5, red6, fake] is red5-red6-red13: not a valid run
+    const hand: OkeyTile[] = [numbered("red", 5), numbered("red", 6), fakeJoker()];
+    const d = decompose(hand, okey, "maxTilesUsed");
+    expect(d.tilesUsed).toBe(0);
+    expect(d.groups).toHaveLength(0);
   });
 
   it("çözülemeyen elde boş döner", () => {
@@ -66,8 +74,8 @@ describe("tileKey / removeTiles", () => {
 });
 
 describe("decompose ek davranışlar", () => {
-  it("maxValue jokeri en yüksek değeri verecek konuma yerleştirir", () => {
-    const hand: OkeyTile[] = [numbered("red", 10), numbered("red", 11), fakeJoker()];
+  it("maxValue okey taşını (wildcard) en yüksek değeri verecek konuma yerleştirir", () => {
+    const hand: OkeyTile[] = [numbered("red", 10), numbered("red", 11), numbered("red", 13)]; // red13 wild -> 12
     const d = decompose(hand, okey, "maxValue");
     expect(d.value).toBe(33); // 10 + 11 + 12
   });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlayerId } from "@masa/shared";
-import { numbered, fakeJoker } from "./tile.js";
+import { numbered } from "./tile.js";
 import type { NumberedTile, OkeyTile } from "./tile.js";
 import type { OkeyGameState, PlayerHandState, HandOutcome, FinishType, FeedingEvent } from "./game-state.js";
 import { makeConfig } from "./game-config.js";
@@ -58,7 +58,7 @@ describe("scoreHand (essiz)", () => {
   });
 
   it("adds a flat +101 when an opened loser holds a wildcard (not multiplied)", () => {
-    const players = [player(0, [], true), player(1, [numbered("blue", 9), fakeJoker()], true), player(2, [], true), player(3, [], true)];
+    const players = [player(0, [], true), player(1, [numbered("blue", 9), numbered("red", 13)], true), player(2, [], true), player(3, [], true)];
     const s = finished(players, outcome({ finishType: ft({ okey: true }) }));
     expect(scoreHand(s).perSeat[1]).toBe(119);
   });

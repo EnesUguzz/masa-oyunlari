@@ -1,7 +1,5 @@
 import { InvalidMoveError } from "../../core/errors/index.js";
-import { isWildcard } from "./okey.js";
-import { tileValue } from "./points.js";
-import { isNumbered } from "./tile.js";
+import { isWildcard, naturalValue } from "./okey.js";
 import type { OkeyTile, NumberedTile } from "./tile.js";
 import type { OkeyGameState, FinishType } from "./game-state.js";
 
@@ -18,9 +16,15 @@ function finishMultiplier(ft: FinishType): number {
   return 2 ** k;
 }
 
-function tilesValue(hand: readonly OkeyTile[]): number {
+function tilesValue(hand: readonly OkeyTile[], okey: NumberedTile): number {
+  // A held wildcard (the okey tile) is penalized by the flat +101, not by its
+  // face value, so it is excluded here. A held fake joker is a concrete
+  // okey-value tile and counts at that value.
   let sum = 0;
-  for (const t of hand) if (isNumbered(t)) sum += tileValue(t);
+  for (const t of hand) {
+    const nat = naturalValue(t, okey);
+    if (nat !== null) sum += nat.value;
+  }
   return sum;
 }
 
@@ -52,7 +56,7 @@ export function scoreHand(state: OkeyGameState): HandScore {
       } else if (!p.opened) {
         base[p.seat] = 202 * m;
       } else {
-        base[p.seat] = tilesValue(p.hand) * m + (hasWildcard(p.hand, state.okey) ? 101 : 0);
+        base[p.seat] = tilesValue(p.hand, state.okey) * m + (hasWildcard(p.hand, state.okey) ? 101 : 0);
       }
     }
   }
