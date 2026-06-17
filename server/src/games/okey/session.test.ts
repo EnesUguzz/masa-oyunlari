@@ -14,8 +14,12 @@ function playToEnd(session: OkeySession): void {
   while (!session.isOver && guard++ < 4000) {
     const seat = session.currentSeat;
     const before = session.handNo;
-    session.apply(seat, { kind: "drawFromPile" });
-    if (session.isOver || session.handNo !== before) continue;
+    // The starting seat opens in "act" and discards without drawing; everyone
+    // else draws first. Only draw when the phase calls for it.
+    if (session.tableViewFor(seat).view.phase === "draw") {
+      session.apply(seat, { kind: "drawFromPile" });
+      if (session.isOver || session.handNo !== before) continue;
+    }
     const view = session.tableViewFor(seat).view;
     const tile = view.yourHand[view.yourHand.length - 1]!;
     session.apply(seat, { kind: "discard", tile });
@@ -45,8 +49,10 @@ describe("OkeySession", () => {
     while (s.handNo === 1 && !s.isOver && guard++ < 200) {
       const sd = s.currentSeat;
       const b = s.handNo;
-      s.apply(sd, { kind: "drawFromPile" });
-      if (s.handNo !== b || s.isOver) break;
+      if (s.tableViewFor(sd).view.phase === "draw") {
+        s.apply(sd, { kind: "drawFromPile" });
+        if (s.handNo !== b || s.isOver) break;
+      }
       const v = s.tableViewFor(sd).view;
       s.apply(sd, { kind: "discard", tile: v.yourHand[v.yourHand.length - 1]! });
     }

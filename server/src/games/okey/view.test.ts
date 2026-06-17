@@ -31,7 +31,7 @@ describe("toOkeyPlayerView", () => {
 
   it("surfaces each player's last discard and the outcome only when finished", () => {
     let s = createHand(config, players, new SeededRng(1));
-    s = applyMove(s, { kind: "drawFromPile" }, 0);
+    // Seat 0 opens in "act": it discards without drawing.
     const tile = s.players[0]!.hand[0]!;
     s = applyMove(s, { kind: "discard", tile }, 0);
     const v = toOkeyPlayerView(s, 1);

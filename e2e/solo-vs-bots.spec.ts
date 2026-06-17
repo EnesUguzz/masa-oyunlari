@@ -16,14 +16,17 @@ test("a single human fills with bots, starts a game, and plays a move", async ({
   await page.getByRole("button", { name: "Oyunu Başlat" }).click();
 
   await expect(page.getByText(/Senin elin \(22/)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Desteden çek/ })).toBeVisible();
+  // The starting player holds 22 tiles and opens in the "act" phase: it must
+  // discard without drawing, so there is no draw button yet — only Aç / At.
+  await expect(page.getByRole("button", { name: /^Aç/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Desteden çek/ })).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Desteden çek/ }).click();
-  await expect(page.getByText(/Senin elin \(23/)).toBeVisible();
-
+  // select the first tile and discard it
   await page.locator('[data-testid="hand"] button').first().click();
-  await page.getByRole("button", { name: "At", exact: true }).click();
+  await page.getByRole("button", { name: /^At/ }).click();
 
-  // bots auto-play; the turn returns to you (draw button visible again)
+  // bots auto-play; the turn returns to you in the draw phase
   await expect(page.getByRole("button", { name: /Desteden çek/ })).toBeVisible();
+  await page.getByRole("button", { name: /Desteden çek/ }).click();
+  await expect(page.getByText(/Senin elin \(22/)).toBeVisible();
 });

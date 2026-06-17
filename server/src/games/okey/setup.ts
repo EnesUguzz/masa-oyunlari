@@ -41,7 +41,9 @@ export function createHand(
     tableMelds: [],
     turn: 0,
     turnSeq: 0,
-    phase: "draw",
+    // The starting player (seat 0) is dealt 22 tiles and opens the hand by
+    // acting/discarding — it does NOT draw first. So the hand begins in "act".
+    phase: "act",
     pendingFloorTile: null,
     highestOpenScore: null,
     highestOpenPairs: null,
