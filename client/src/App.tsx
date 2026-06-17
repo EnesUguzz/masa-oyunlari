@@ -7,6 +7,7 @@ import { Lobby } from "./core/Lobby.js";
 import { Room } from "./core/Room.js";
 import type { OkeyTableView } from "./games/okey/types.js";
 import { OkeyTable } from "./games/okey/OkeyTable.js";
+import { turkishError } from "./games/okey/error-messages.js";
 
 type Screen = "nickname" | "lobby" | "room" | "table";
 
@@ -29,7 +30,7 @@ export function App() {
           setView(v);
           setScreen("room");
         },
-        onError: (e) => setError(`${e.code}: ${e.message}`),
+        onError: (e) => setError(turkishError(e.code, e.message)),
         onOkeyState: (tv) => { setError(null); setTable(tv); setScreen("table"); },
         onOkeyEnded: (tv) => { setError(null); setTable(tv); setScreen("table"); },
       }),
