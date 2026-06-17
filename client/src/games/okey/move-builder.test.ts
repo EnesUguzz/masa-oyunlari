@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OkeyTile } from "./types.js";
-import { tilesEqual, buildOpenMelds, buildOpenPairs, buildProcess, buildOpenNewMeld, buildDiscard, canDiscard } from "./move-builder.js";
+import { tilesEqual, buildOpenMelds, buildOpenPairs, buildProcess, buildOpenNewMeld, buildDiscard, canDiscard, buildAutoOpen, buildOpenPairsFromSelection } from "./move-builder.js";
 
 const r5: OkeyTile = { kind: "numbered", color: "red", value: 5 };
 const r6: OkeyTile = { kind: "numbered", color: "red", value: 6 };
@@ -19,6 +19,13 @@ describe("move-builder", () => {
     expect(buildProcess("m1", [r5])).toEqual({ kind: "processToMeld", meldId: "m1", tiles: [r5] });
     expect(buildOpenNewMeld([r5, r6])).toEqual({ kind: "openNewMeld", tiles: [r5, r6] });
     expect(buildDiscard(r5)).toEqual({ kind: "discard", tile: r5 });
+  });
+  it("buildAutoOpen produces the autoOpen intent", () => {
+    expect(buildAutoOpen()).toEqual({ kind: "autoOpen" });
+  });
+  it("buildOpenPairsFromSelection chunks a flat selection into pairs of two", () => {
+    expect(buildOpenPairsFromSelection([r5, r5, r6, r6])).toEqual({ kind: "openPairs", pairs: [[r5, r5], [r6, r6]] });
+    expect(buildOpenPairsFromSelection([r5, r5, r6])).toEqual({ kind: "openPairs", pairs: [[r5, r5]] });
   });
   it("canDiscard requires exactly one tile", () => {
     expect(canDiscard([r5])).toBe(true);

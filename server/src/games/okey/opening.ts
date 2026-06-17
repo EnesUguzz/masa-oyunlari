@@ -10,6 +10,7 @@ import { AlreadyOpenedError, OpeningThresholdNotMetError, NotOpenedError, ModeLo
 import {
   current, requirePhase, removeTilesFromHand, consumeFloorIfLaid, recordFeeding, meldThreshold, pairThreshold,
 } from "./helpers.js";
+import { decompose } from "./decompose.js";
 
 function meldKind(tiles: readonly OkeyTile[], okey: OkeyGameState["okey"]): "run" | "set" {
   return isValidRun(tiles, okey) ? "run" : "set";
@@ -113,6 +114,46 @@ export function applyProcessToMeld(s: OkeyGameState, meldId: string, tiles: Okey
   consumeFloorIfLaid(s, tiles);
   meld.tiles = candidate;
   meld.kind = meldKind(candidate, s.okey);
+}
+
+/**
+ * "Aç" — compute the best valid opening from the current seat's hand server-side
+ * and lay it down. If not yet opened, opens the highest-value meld decomposition
+ * (must meet the threshold). If already opened in melds mode, lays down every
+ * further meld it can find, always keeping at least one tile to discard with.
+ * Pure game logic stays on the server; the client only sends the intent.
+ */
+export function applyAutoOpen(s: OkeyGameState): void {
+  requirePhase(s, "act");
+  const me = current(s);
+
+  if (!me.opened) {
+    const d = decompose(me.hand, s.okey, "maxValue");
+    if (d.groups.length === 0 || d.value < meldThreshold(s)) {
+      throw new OpeningThresholdNotMetError(`best opening ${d.value}, need ${meldThreshold(s)}`);
+    }
+    applyOpenMelds(s, d.groups.map((g) => [...g]));
+  }
+
+  // At this point the seat is opened (either just now, or previously). autoOpen
+  // only manages melds; a pairs opener must lay further pairs manually.
+  if (me.openMode !== "melds") {
+    throw new ModeLockedError("autoOpen only lays melds; pairs mode is manual");
+  }
+
+  // Lay down every additional meld we can, keeping >=1 tile to discard.
+  let more = true;
+  while (more) {
+    more = false;
+    const d = decompose(me.hand, s.okey, "maxTilesUsed");
+    for (const g of d.groups) {
+      if (me.hand.length - g.length >= 1) {
+        applyOpenNewMeld(s, [...g]);
+        more = true;
+        break;
+      }
+    }
+  }
 }
 
 export function applyOpenNewMeld(s: OkeyGameState, tiles: OkeyTile[]): void {

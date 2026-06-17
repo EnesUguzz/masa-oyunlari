@@ -14,6 +14,7 @@ export const moveSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("drawFromPile") }).strict(),
   z.object({ kind: z.literal("drawFromDiscard") }).strict(),
   z.object({ kind: z.literal("openMelds"), melds: z.array(z.array(tileSchema)) }).strict(),
+  z.object({ kind: z.literal("autoOpen") }).strict(),
   z.object({ kind: z.literal("openPairs"), pairs: z.array(z.array(tileSchema)) }).strict(),
   z.object({ kind: z.literal("openNewMeld"), tiles: z.array(tileSchema) }).strict(),
   z.object({ kind: z.literal("processToMeld"), meldId: z.string(), tiles: z.array(tileSchema) }).strict(),

@@ -1,7 +1,9 @@
 import type { JSX } from "react";
 import { useState } from "react";
 import type { Move, OkeyTile, OkeyPlayerView } from "./types.js";
-import { buildOpenMelds, buildOpenPairs, buildProcess, buildOpenNewMeld, buildDiscard, canDiscard } from "./move-builder.js";
+import {
+  buildAutoOpen, buildOpenPairsFromSelection, buildProcess, buildOpenNewMeld, buildDiscard, canDiscard,
+} from "./move-builder.js";
 
 export function Controls({ view, selected, onClearSelection, onMove }: {
   view: OkeyPlayerView;
@@ -9,14 +11,14 @@ export function Controls({ view, selected, onClearSelection, onMove }: {
   onClearSelection: () => void;
   onMove: (move: Move) => void;
 }): JSX.Element {
-  const [staged, setStaged] = useState<OkeyTile[][]>([]);
   const [meldId, setMeldId] = useState<string>("");
   const yourTurn = view.turn === view.you;
+  const me = view.players.find((p) => p.seat === view.you);
+  const opened = me?.opened ?? false;
 
-  if (!yourTurn) return <p>Sıra başka oyuncuda…</p>;
+  if (!yourTurn) return <p style={{ color: "#777" }}>Sıra başka oyuncuda…</p>;
 
-  const send = (m: Move): void => { onMove(m); setStaged([]); onClearSelection(); };
-  const stage = (): void => { if (selected.length > 0) { setStaged((g) => [...g, selected]); onClearSelection(); } };
+  const send = (m: Move): void => { onMove(m); onClearSelection(); };
 
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
@@ -28,18 +30,31 @@ export function Controls({ view, selected, onClearSelection, onMove }: {
       )}
       {view.phase === "act" && (
         <>
-          <button disabled={selected.length === 0} onClick={stage}>Gruba ekle ({staged.length} hazır)</button>
-          <button disabled={staged.length === 0} onClick={() => send(buildOpenMelds(staged))}>Perlerle Aç</button>
-          <button disabled={staged.length === 0} onClick={() => send(buildOpenPairs(staged))}>Çiftlerle Aç</button>
-          <button disabled={selected.length === 0} onClick={() => send(buildOpenNewMeld(selected))}>Yeni Per</button>
-          <select value={meldId} onChange={(e) => setMeldId(e.target.value)}>
-            <option value="">Per seç…</option>
-            {view.tableMelds.map((m) => (
-              <option key={m.id} value={m.id}>{m.kind} #{m.id}</option>
-            ))}
-          </select>
-          <button disabled={!meldId || selected.length === 0} onClick={() => send(buildProcess(meldId, selected))}>İşle</button>
-          <button disabled={!canDiscard(selected)} onClick={() => send(buildDiscard(selected[0]!))}>At</button>
+          <button onClick={() => send(buildAutoOpen())} title="Elindeki tüm geçerli perleri otomatik açar/dizer">
+            {opened ? "Kalan perleri diz" : "Aç (perleri diz)"}
+          </button>
+          {!opened && (
+            <button
+              disabled={selected.length < 2 || selected.length % 2 !== 0}
+              onClick={() => send(buildOpenPairsFromSelection(selected))}
+            >
+              Çiftlerle Aç
+            </button>
+          )}
+          {opened && (
+            <>
+              <button disabled={selected.length < 2} onClick={() => send(buildOpenNewMeld(selected))}>Yeni Per (seçili)</button>
+              <select value={meldId} onChange={(e) => setMeldId(e.target.value)}>
+                <option value="">Per seç…</option>
+                {view.tableMelds.filter((m) => m.kind !== "pair").map((m) => (
+                  <option key={m.id} value={m.id}>{m.kind} #{m.id}</option>
+                ))}
+              </select>
+              <button disabled={!meldId || selected.length === 0} onClick={() => send(buildProcess(meldId, selected))}>İşle</button>
+            </>
+          )}
+          <button disabled={!canDiscard(selected)} onClick={() => send(buildDiscard(selected[0]!))}>At (seçili)</button>
+          <span style={{ color: "#2a7", fontSize: 13 }}>· taşı sürükle → masaya/pere bırak</span>
         </>
       )}
     </div>
