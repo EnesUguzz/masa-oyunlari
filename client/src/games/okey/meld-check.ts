@@ -65,7 +65,66 @@ export function isPair(a: OkeyTile, b: OkeyTile, okey: NumberedTile): boolean {
   return na.color === nb.color && na.value === nb.value;
 }
 
+export function isWildcard(t: OkeyTile, okey: NumberedTile): boolean {
+  return isOkeyTile(t, okey);
+}
+
+/**
+ * Order-sensitive run: tiles read left-to-right must form a strictly ascending
+ * consecutive sequence (wildcards fill their position). 7-8-9-10 is valid;
+ * 7-8-10-9 is not. Naturals must share one color and stay within 1..13.
+ */
+export function isOrderedRun(tiles: readonly OkeyTile[], okey: NumberedTile): boolean {
+  if (tiles.length < 3) return false;
+  const nats = tiles.map((t) => naturalValue(t, okey));
+  const naturals = nats.filter((n): n is NumberedTile => n !== null);
+  if (naturals.length === 0) return false;
+  const color = naturals[0]!.color;
+  if (!naturals.every((n) => n.color === color)) return false;
+  const i0 = nats.findIndex((n) => n !== null);
+  const v0 = nats[i0]!.value;
+  for (let j = 0; j < tiles.length; j++) {
+    const expected = v0 + (j - i0);
+    if (expected < MIN_VALUE || expected > MAX_VALUE) return false;
+    const n = nats[j] ?? null;
+    if (n !== null && n.value !== expected) return false;
+  }
+  return true;
+}
+
+/** Greedy optimal pairing (mirrors the server bot): identical tiles pair; wildcards fill singletons. */
+export function bestPairs(hand: readonly OkeyTile[], okey: NumberedTile): OkeyTile[][] {
+  const wilds: OkeyTile[] = [];
+  const byKey = new Map<string, OkeyTile[]>();
+  for (const t of hand) {
+    if (isWildcard(t, okey)) { wilds.push(t); continue; }
+    const nat = naturalValue(t, okey)!;
+    const k = `${nat.color}:${nat.value}`;
+    if (!byKey.has(k)) byKey.set(k, []);
+    byKey.get(k)!.push(t);
+  }
+  const pairs: OkeyTile[][] = [];
+  const singles: OkeyTile[] = [];
+  for (const arr of byKey.values()) {
+    let i = 0;
+    for (; i + 1 < arr.length; i += 2) pairs.push([arr[i]!, arr[i + 1]!]);
+    if (i < arr.length) singles.push(arr[i]!);
+  }
+  let wi = 0;
+  for (const s of singles) { if (wi < wilds.length) { pairs.push([s, wilds[wi]!]); wi++; } }
+  for (; wi + 1 < wilds.length; wi += 2) pairs.push([wilds[wi]!, wilds[wi + 1]!]);
+  return pairs;
+}
+
 export type GroupKind = "run" | "set" | "pair" | "invalid";
+
+/** Order-sensitive classification used for rack groups (runs must be in order). */
+export function classifyOrdered(tiles: readonly OkeyTile[], okey: NumberedTile): GroupKind {
+  if (tiles.length === 2 && isPair(tiles[0]!, tiles[1]!, okey)) return "pair";
+  if (isOrderedRun(tiles, okey)) return "run";
+  if (isValidSet(tiles, okey)) return "set";
+  return "invalid";
+}
 
 /** Classify a staged group for UI feedback. `mode` picks pairs vs melds context. */
 export function classifyGroup(tiles: readonly OkeyTile[], okey: NumberedTile, mode: "melds" | "pairs"): GroupKind {

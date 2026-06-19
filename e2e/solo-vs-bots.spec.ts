@@ -17,9 +17,9 @@ test("a single human fills with bots, starts a game, and plays a move", async ({
 
   await expect(page.getByText(/Senin elin \(22/)).toBeVisible();
   // The starting player holds 22 tiles and opens in the "act" phase: it must
-  // discard without drawing, so there is no draw button yet — only the staging
-  // controls (e.g. "Otomatik Aç") and the "At (seçili)" discard button.
-  await expect(page.getByRole("button", { name: /Otomatik/ })).toBeVisible();
+  // discard without drawing, so there is no draw button yet — only the assist
+  // helper ("Seri Diz", shown in destekli mode) and the "At (seçili)" discard.
+  await expect(page.getByRole("button", { name: /Seri Diz/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /Desteden çek/ })).toHaveCount(0);
 
   // select the first tile and discard it via the At button

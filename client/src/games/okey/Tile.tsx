@@ -4,7 +4,7 @@ import type { OkeyTile } from "./types.js";
 const COLOR_HEX: Record<string, string> = { red: "#c1121f", yellow: "#cf8a00", black: "#1d1d1d", blue: "#0d5bbf" };
 
 export function Tile({
-  tile, selected, dragging, onClick, draggable, onDragStart, onDragOver, onDrop, size = "md",
+  tile, selected, dragging, onClick, draggable, onDragStart, onDragOver, onDrop, size = "md", faceDown = false,
 }: {
   tile: OkeyTile;
   selected?: boolean;
@@ -15,17 +15,22 @@ export function Tile({
   onDragOver?: (e: DragEvent) => void;
   onDrop?: (e: DragEvent) => void;
   size?: "sm" | "md";
+  // Render as a plain face-down back (no number/mark). Used in assisted mode to
+  // show the okey/wildcard tiles closed — the player still drags/selects them.
+  faceDown?: boolean;
 }): JSX.Element {
   const isJoker = tile.kind === "fakeJoker";
-  const label = isJoker ? "★" : String(tile.value);
-  const color = isJoker ? "#7a5c32" : COLOR_HEX[tile.color] ?? "#1d1d1d";
+  const label = isJoker ? "★" : tile.kind === "numbered" ? String(tile.value) : "";
+  const color = isJoker ? "#7a5c32" : tile.kind === "numbered" ? COLOR_HEX[tile.color] ?? "#1d1d1d" : "#1d1d1d";
   const dims = size === "sm" ? { w: 30, h: 42, f: 17 } : { w: 38, h: 54, f: 22 };
 
   const style: CSSProperties = {
     width: dims.w, height: dims.h, margin: 2, fontSize: dims.f, fontWeight: 800,
     fontFamily: "Georgia, serif", color,
-    background: selected ? "#fbe6b2" : "#f4ecd8",
-    border: `1px solid ${selected ? "#d4a017" : "#d8cdb0"}`,
+    background: faceDown
+      ? "linear-gradient(135deg, #6b4f2a, #4a3517)"
+      : selected ? "#fbe6b2" : "#f4ecd8",
+    border: `1px solid ${faceDown ? "#3a2912" : selected ? "#d4a017" : "#d8cdb0"}`,
     borderRadius: 6,
     boxShadow: selected
       ? "0 0 0 2px #d4a017, inset 0 1px 2px rgba(255,255,255,.7)"
@@ -38,7 +43,7 @@ export function Tile({
 
   return (
     <button onClick={onClick} draggable={draggable} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop} style={style}>
-      {label}
+      {faceDown ? "" : label}
     </button>
   );
 }

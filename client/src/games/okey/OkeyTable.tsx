@@ -1,12 +1,12 @@
 import type { CSSProperties, JSX } from "react";
 import { useMemo, useState } from "react";
 import type { Move, OkeyTile, OkeyTableView } from "./types.js";
-import { Hand } from "./Hand.js";
+import { SlottedRack } from "./SlottedRack.js";
 import { Tile } from "./Tile.js";
 import { Scoreboard } from "./Scoreboard.js";
-import { useRackOrder, tileSig } from "./rack-order.js";
-import { classifyGroup, meldPoints } from "./meld-check.js";
-import { buildDiscard, buildProcess } from "./move-builder.js";
+import { useRackSlots, allGroups, sigToTile, RACK_ROWS, RACK_COLS } from "./rack-slots.js";
+import { classifyOrdered, meldPoints, bestPairs, type GroupKind } from "./meld-check.js";
+import { buildDiscard, buildProcess, buildOpenNewMeld } from "./move-builder.js";
 
 const FELT: CSSProperties = {
   background: "radial-gradient(ellipse at 50% 45%, #2c6e49, #1d5236 62%, #173f2b)",
@@ -15,12 +15,6 @@ const FELT: CSSProperties = {
 };
 const LABEL: CSSProperties = { color: "#e7e0cf", font: "13px Georgia, serif" };
 
-function multiset(tiles: readonly OkeyTile[]): Map<string, number> {
-  const m = new Map<string, number>();
-  for (const t of tiles) m.set(tileSig(t), (m.get(tileSig(t)) ?? 0) + 1);
-  return m;
-}
-
 export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; onMove: (move: Move) => void; onLeave?: () => void }): JSX.Element {
   const { view, seating } = table;
   const me = view.players.find((p) => p.seat === view.you);
@@ -28,56 +22,47 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const openMode = me?.openMode ?? null;
   const yourTurn = view.turn === view.you;
   const canAct = yourTurn && view.phase === "act";
+  const assist = view.config.assist;
+  const okey = view.okey;
+  const openThreshold = view.config.openThreshold;
+  const minPairs = view.config.minPairs;
 
-  // Tiles dragged into staging bins leave the rack (tracked by tile object identity-free signatures).
-  const [bins, setBins] = useState<OkeyTile[][]>([]);
-  const [drag, setDrag] = useState<{ pos: number; tile: OkeyTile } | null>(null);
-  const [sel, setSel] = useState<number | null>(null); // selected rack slot index (into unstaged), for the At button
+  const { slots, move } = useRackSlots(view.yourHand);
+  const [sel, setSel] = useState<number | null>(null); // selected rack slot
+  const [drag, setDrag] = useState<{ from: number; tile: OkeyTile } | null>(null);
+  const clearDrag = (): void => setDrag(null);
 
-  // Rack = hand minus tiles currently staged in bins (by multiset).
-  const unstaged = useMemo(() => {
-    const staged = multiset(bins.flat());
-    const out: OkeyTile[] = [];
-    for (const t of view.yourHand) {
-      const k = tileSig(t);
-      const c = staged.get(k) ?? 0;
-      if (c > 0) staged.set(k, c - 1);
-      else out.push(t);
-    }
-    return out;
-  }, [view.yourHand, bins]);
+  // Contiguous rack groups → live meld/pair classification.
+  const groups = useMemo(() => allGroups(slots, RACK_ROWS, RACK_COLS), [slots]);
+  const classed = useMemo(
+    () => groups.map((g) => ({ g, kind: (g.tiles.length === 1 ? "single" : classifyOrdered(g.tiles, okey)) as GroupKind | "single" })),
+    [groups, okey],
+  );
+  const slotKindMap = useMemo(() => {
+    const m = new Map<number, GroupKind | "single">();
+    for (const { g, kind } of classed) for (const idx of g.slotIndices) m.set(idx, kind);
+    return m;
+  }, [classed]);
+  const slotKind = (i: number): GroupKind | "single" => slotKindMap.get(i) ?? "single";
 
-  const { slots, move } = useRackOrder(unstaged);
+  const validMeldGroups = classed.filter((x) => x.kind === "run" || x.kind === "set").map((x) => x.g.tiles);
+  const validPairGroups = classed.filter((x) => x.kind === "pair").map((x) => x.g.tiles);
+  const meldTotal = validMeldGroups.reduce((s, tiles) => s + meldPoints(tiles, okey), 0);
+  const autoPairs = useMemo(() => bestPairs(view.yourHand, okey), [view.yourHand, okey]);
 
   const nick = (seat: number): string => seating.find((s) => s.seat === seat)?.nickname ?? `#${seat}`;
-  const clearDrag = (): void => setDrag(null);
-  const resetBins = (): void => setBins([]);
 
-  const addToBin = (binIdx: number, tile: OkeyTile): void => {
-    setBins((bs) => bs.map((b, i) => (i === binIdx ? [...b, tile] : b)));
-  };
-  const dropToNewBin = (tile: OkeyTile): void => setBins((bs) => [...bs, [tile]]);
-  const returnBin = (binIdx: number): void => setBins((bs) => bs.filter((_, i) => i !== binIdx));
+  // --- rack interactions ----------------------------------------------------
+  const dropToSlot = (to: number): void => { if (drag) move(drag.from, to); clearDrag(); };
+  const dropToDiscard = (): void => { if (drag && canAct) onMove(buildDiscard(drag.tile)); clearDrag(); };
+  const dropToMeld = (meldId: string): void => { if (drag && canAct && opened) onMove(buildProcess(meldId, [drag.tile])); clearDrag(); };
 
-  const dropToDiscard = (): void => {
-    if (drag && canAct) onMove(buildDiscard(drag.tile));
-    clearDrag();
-  };
-  const dropToMeld = (meldId: string): void => {
-    if (drag && canAct && opened) onMove(buildProcess(meldId, [drag.tile]));
-    clearDrag();
-  };
-
-  // --- staging-driven moves -------------------------------------------------
-  const filled = bins.filter((b) => b.length > 0);
-  const allMelds = filled.length > 0 && filled.every((b) => classifyGroup(b, view.okey, "melds") !== "invalid");
-  const allPairs = filled.length > 0 && filled.every((b) => classifyGroup(b, view.okey, "pairs") === "pair");
-  const stagedPoints = filled.reduce((s, b) => s + meldPoints(b, view.okey), 0);
-
-  const openWithMelds = (): void => { onMove({ kind: "openMelds", melds: filled }); resetBins(); };
-  const openWithPairs = (): void => { onMove({ kind: "openPairs", pairs: filled }); resetBins(); };
-  const layStagedMelds = (): void => { for (const b of filled) onMove({ kind: "openNewMeld", tiles: b }); resetBins(); };
-  const autoOpen = (): void => { onMove({ kind: "autoOpen" }); resetBins(); };
+  // --- opening / laying moves -----------------------------------------------
+  const openWithMelds = (): void => { onMove({ kind: "openMelds", melds: validMeldGroups }); setSel(null); };
+  const openWithPairs = (): void => { onMove({ kind: "openPairs", pairs: validPairGroups }); setSel(null); };
+  const layMelds = (): void => { for (const tiles of validMeldGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
+  const autoOpen = (): void => { onMove({ kind: "autoOpen" }); setSel(null); };
+  const autoPairsOpen = (): void => { onMove({ kind: "openPairs", pairs: autoPairs }); setSel(null); };
 
   const seatBox = (seat: number): JSX.Element | null => {
     const p = view.players.find((x) => x.seat === seat);
@@ -124,7 +109,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             </div>
             <div style={{ textAlign: "center" }}>
               <Tile tile={view.indicator} />
-              <div style={LABEL}>gösterge · okey {view.okey.kind === "numbered" ? `${view.okey.value}` : ""}</div>
+              <div style={LABEL}>gösterge · okey {okey.kind === "numbered" ? `${okey.value}` : ""}</div>
             </div>
           </div>
 
@@ -167,76 +152,61 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
           </div>
         )}
 
-        {/* meld staging */}
-        {canAct && (
-          <div style={{ border: "1px solid #d8cdb0", borderRadius: 8, padding: 10, margin: "8px 0", background: "#faf6ec" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <strong style={{ font: "14px Georgia,serif" }}>Per kur (taşları sürükle)</strong>
-              <span style={{ font: "12px Georgia,serif", color: "#666" }}>
-                {opened ? `açtın (${openMode === "pairs" ? "çift" : "per"})` : `açış puanı: ${stagedPoints} / 101`}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {bins.map((b, i) => {
-                const kind = classifyGroup(b, view.okey, allPairs && !allMelds ? "pairs" : "melds");
-                const ok = kind !== "invalid";
-                const pts = meldPoints(b, view.okey);
-                return (
-                  <div key={i}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => { e.preventDefault(); if (drag) { addToBin(i, drag.tile); clearDrag(); } }}
-                    style={{
-                      border: `2px dashed ${b.length === 0 ? "#bbb" : ok ? "#2a9d4a" : "#c44"}`,
-                      borderRadius: 8, padding: 6, minWidth: 90, background: "#fff",
-                    }}>
-                    <div style={{ font: "10px Georgia,serif", color: ok ? "#2a7d32" : "#b33", marginBottom: 2 }}>
-                      {b.length === 0 ? "boş — taş bırak" : ok ? `✓ ${kind === "pair" ? "çift" : kind === "run" ? "seri" : "grup"}${pts ? ` ${pts}p` : ""}` : "✗ geçersiz"}
-                    </div>
-                    <div style={{ display: "flex", minHeight: 44 }}>{b.map((t, j) => <Tile key={j} tile={t} size="sm" />)}</div>
-                    <button style={{ marginTop: 4, font: "11px Georgia,serif" }} onClick={() => returnBin(i)}>↩ geri</button>
-                  </div>
-                );
-              })}
-              <button
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => { e.preventDefault(); if (drag) { dropToNewBin(drag.tile); clearDrag(); } }}
-                onClick={() => setBins((bs) => [...bs, []])}
-                style={{ minWidth: 90, minHeight: 80, border: "2px dashed #aaa", borderRadius: 8, background: "#f4f4f4", cursor: "pointer" }}>
-                + yeni grup<br />(buraya sürükle)
-              </button>
-            </div>
-
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              {!opened && <button disabled={!allMelds || stagedPoints < 101} onClick={openWithMelds}>Perlerle Aç ({stagedPoints}/101)</button>}
-              {!opened && <button disabled={!allPairs || filled.length < 5} onClick={openWithPairs}>Çiftlerle Aç ({filled.length}/5)</button>}
-              {opened && openMode === "melds" && <button disabled={!allMelds} onClick={layStagedMelds}>Perleri Diz</button>}
-              {opened && openMode === "pairs" && <button disabled={!allPairs} onClick={layStagedMelds}>Çiftleri Diz</button>}
-              <button onClick={autoOpen} title="Elindeki tüm geçerli perleri otomatik açar/dizer">Otomatik {opened ? "Diz" : "Aç"}</button>
-              {bins.length > 0 && <button onClick={resetBins}>Temizle</button>}
-            </div>
-          </div>
-        )}
-
         {/* my rack */}
-        <div style={{ background: "linear-gradient(#b58a52,#8a6532)", borderRadius: 12, padding: 10, border: "3px solid #f2c14e", boxShadow: "inset 0 2px 4px rgba(255,255,255,.25)" }}>
-          <div style={{ ...LABEL, marginBottom: 4 }}>Senin elin ({view.yourHand.length}) — {unstaged.length} rafta, {bins.flat().length} kuruluyor</div>
-          <Hand
+        <div style={{ background: "linear-gradient(#b58a52,#8a6532)", borderRadius: 12, padding: 10, border: "3px solid #f2c14e", boxShadow: "inset 0 2px 4px rgba(255,255,255,.25)", marginTop: 8 }}>
+          <div style={{ ...LABEL, marginBottom: 6 }}>
+            Senin elin ({view.yourHand.length}) — taşları boşluklarla grupla; yan yana 3+ seri/grup, 2 çift
+            {!opened && <> · açış: <strong>{meldTotal}</strong>/{openThreshold}</>}
+          </div>
+          <SlottedRack
             slots={slots}
-            selected={sel !== null ? new Set([sel]) : new Set()}
-            onToggle={(i) => setSel((p) => (p === i ? null : i))}
-            dragPos={drag ? drag.pos : null}
-            onDragStartTile={(pos, tile) => setDrag({ pos, tile })}
-            onReorder={(from, to) => { move(from, to); clearDrag(); }}
+            okey={okey}
+            assist={assist}
+            selected={sel}
+            dragFrom={drag ? drag.from : null}
+            slotKind={slotKind}
+            onSelect={(i) => setSel((p) => (p === i ? null : i))}
+            onDragStartSlot={(from, tile) => setDrag({ from, tile })}
+            onDropToSlot={dropToSlot}
             onDragEnd={clearDrag}
           />
         </div>
 
-        {/* discard: tap a tile then "At", or drag a tile onto the zone */}
+        {/* action bar */}
         {canAct && (
-          <div style={{ display: "flex", gap: 8, alignItems: "stretch", marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+            {!opened && (
+              <button disabled={meldTotal < openThreshold} onClick={openWithMelds} title="Rafta kurduğun serileri/grupları aç">
+                Aç ({meldTotal}/{openThreshold})
+              </button>
+            )}
+            {!opened && (
+              <button disabled={validPairGroups.length < minPairs} onClick={openWithPairs} title="Rafta kurduğun çiftleri aç">
+                Çiftlerle Aç ({validPairGroups.length}/{minPairs})
+              </button>
+            )}
+            {opened && openMode === "melds" && (
+              <button disabled={validMeldGroups.length === 0} onClick={layMelds}>Perleri Diz ({validMeldGroups.length})</button>
+            )}
+
+            {/* assist-only helpers */}
+            {assist === "destekli" && (
+              <button onClick={autoOpen} title="En yüksek puanlı serileri otomatik bulur ve açar/dizer">
+                Seri Diz
+              </button>
+            )}
+            {assist === "destekli" && !opened && (
+              <button disabled={autoPairs.length < minPairs} onClick={autoPairsOpen} title="En iyi çiftleri otomatik bulur ve açar">
+                Çift Diz ({autoPairs.length}/{minPairs})
+              </button>
+            )}
+
+            <span style={{ flex: 1 }} />
+
+            {/* discard: select a tile then "At", or drag onto the zone */}
             <button
-              disabled={sel === null}
-              onClick={() => { if (sel !== null && unstaged[sel]) { onMove(buildDiscard(unstaged[sel]!)); setSel(null); } }}
+              disabled={sel === null || slots[sel] == null}
+              onClick={() => { if (sel !== null && slots[sel] != null) { onMove(buildDiscard(sigToTile(slots[sel]!))); setSel(null); } }}
               style={{ fontWeight: 700 }}>
               At (seçili)
             </button>
@@ -244,7 +214,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
               onDragOver={(e) => { e.preventDefault(); }}
               onDrop={(e) => { e.preventDefault(); dropToDiscard(); }}
               style={{
-                flex: 1, padding: "10px", borderRadius: 8, textAlign: "center",
+                minWidth: 160, padding: "8px 12px", borderRadius: 8, textAlign: "center",
                 border: `2px dashed ${drag ? "#c33" : "#ccc"}`,
                 background: drag ? "#fdecec" : "#fafafa", color: "#a00", fontWeight: 700,
               }}>

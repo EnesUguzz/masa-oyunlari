@@ -8,6 +8,7 @@ export type EscalationMode = "katlamasiz" | "katlamali";
 export type PenaltyMode = "cezasiz" | "cezali";
 export type PartnerEscalation = "ese-katlamali" | "ese-katlamasiz";
 export type TargetHands = 7 | 11 | 21;
+export type AssistMode = "destekli" | "desteksiz";
 
 export interface OkeyConfig {
   pairing: PairingMode;
@@ -17,6 +18,7 @@ export interface OkeyConfig {
   targetHands: TargetHands;
   openThreshold: number;
   minPairs: number;
+  assist: AssistMode;
 }
 
 export interface TableMeld { id: string; owner: number; kind: "run" | "set" | "pair"; tiles: OkeyTile[]; }
@@ -83,4 +85,5 @@ export interface StartGameConfig {
   penalty: PenaltyMode;
   partnerEscalation?: PartnerEscalation;
   targetHands: TargetHands;
+  assist?: AssistMode;
 }
