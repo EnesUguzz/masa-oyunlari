@@ -44,10 +44,16 @@ describe("arrange", () => {
   it("arrangeMelds yields rack groups that classify as valid melds", () => {
     const hand: OkeyTile[] = [t("red", 5), t("red", 6), t("red", 7), t("blue", 9)];
     const slots = arrangeMelds(hand, okey, 2, 14);
-    expect(slots.slice(0, 3).map((s) => sigToTile(s!))).toEqual(hand.slice(0, 3));
-    expect(classifyOrdered(slots.slice(0, 3).map((s) => sigToTile(s!)), okey)).toBe("run");
+    expect(slots).not.toBeNull();
+    expect(slots!.slice(0, 3).map((s) => sigToTile(s!))).toEqual(hand.slice(0, 3));
+    expect(classifyOrdered(slots!.slice(0, 3).map((s) => sigToTile(s!)), okey)).toBe("run");
     // the leftover blue 9 sits after a gap, on its own
-    expect(slots[3]).toBeNull();
-    expect(slots[4] && tileSig(sigToTile(slots[4]))).toBe(tileSig(t("blue", 9)));
+    expect(slots![3]).toBeNull();
+    expect(slots![4] && tileSig(sigToTile(slots![4]!))).toBe(tileSig(t("blue", 9)));
+  });
+
+  it("arrangeMelds returns null when there is no meld to form", () => {
+    const hand: OkeyTile[] = [t("red", 5), t("blue", 9), t("black", 2)];
+    expect(arrangeMelds(hand, okey, 2, 14)).toBeNull();
   });
 });

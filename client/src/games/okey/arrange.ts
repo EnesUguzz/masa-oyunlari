@@ -216,15 +216,23 @@ export function layoutSlots(groups: readonly OkeyTile[][], leftovers: readonly O
   return compact;
 }
 
-/** "Seri Diz": arrange the hand into the highest-value runs/sets on the rack. */
-export function arrangeMelds(hand: readonly OkeyTile[], okey: NumberedTile, rows: number, cols: number): (string | null)[] {
+/**
+ * "Seri Diz": arrange the hand into the highest-value runs/sets on the rack.
+ * Returns null when there is no meld to form (nothing to do — leave the rack as is).
+ */
+export function arrangeMelds(hand: readonly OkeyTile[], okey: NumberedTile, rows: number, cols: number): (string | null)[] | null {
   const d = decompose(hand, okey);
+  if (d.groups.length === 0) return null;
   const ordered = d.groups.map((g) => orderMeldForDisplay(g, okey));
   return layoutSlots(ordered, leftoverTiles(hand, d.groups), rows, cols);
 }
 
-/** "Çift Diz": arrange the hand into the best pairs on the rack. */
-export function arrangePairs(hand: readonly OkeyTile[], okey: NumberedTile, rows: number, cols: number): (string | null)[] {
+/**
+ * "Çift Diz": arrange the hand into the best pairs on the rack.
+ * Returns null when no pair can be formed.
+ */
+export function arrangePairs(hand: readonly OkeyTile[], okey: NumberedTile, rows: number, cols: number): (string | null)[] | null {
   const pairs = bestPairs(hand, okey);
+  if (pairs.length === 0) return null;
   return layoutSlots(pairs, leftoverTiles(hand, pairs), rows, cols);
 }

@@ -66,6 +66,9 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const nick = (seat: number): string => seating.find((s) => s.seat === seat)?.nickname ?? `#${seat}`;
 
   const floorSig = view.pendingFloorTile ? tileSig(view.pendingFloorTile) : null;
+  const prevSeat = (view.you + 3) % 4; // the seat I draw from / return a floor tile to
+  const myLastDiscard = me?.lastDiscard ?? null;
+  const canReturn = canAct && view.pendingFloorTile !== null;
 
   // --- rack interactions ----------------------------------------------------
   const dropToSlot = (to: number): void => { if (drag) move(drag.from, to); clearDrag(); };
@@ -78,13 +81,15 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const openWithPairs = (): void => { onMove({ kind: "openPairs", pairs: validPairGroups }); setSel(null); };
   const layMelds = (): void => { for (const tiles of validMeldGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
   // "Seri Diz" / "Çift Diz": rearrange the rack (no opening), highest score first.
-  const arrangeSeri = (): void => { setSlots(arrangeMelds(view.yourHand, okey, RACK_ROWS, RACK_COLS)); setSel(null); };
-  const arrangeCift = (): void => { setSlots(arrangePairs(view.yourHand, okey, RACK_ROWS, RACK_COLS)); setSel(null); };
+  // When there is nothing to form, leave the rack untouched.
+  const arrangeSeri = (): void => { const next = arrangeMelds(view.yourHand, okey, RACK_ROWS, RACK_COLS); if (next) setSlots(next); setSel(null); };
+  const arrangeCift = (): void => { const next = arrangePairs(view.yourHand, okey, RACK_ROWS, RACK_COLS); if (next) setSlots(next); setSel(null); };
 
   const seatBox = (seat: number): JSX.Element | null => {
     const p = view.players.find((x) => x.seat === seat);
     if (!p) return null;
     const active = view.turn === seat;
+    const returnHere = canReturn && seat === prevSeat; // drop the floor tile back here
     return (
       <div style={{ textAlign: "center", color: "#e7e0cf", minWidth: 92 }}>
         <div style={{
@@ -97,7 +102,17 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
         <div style={{ font: "11px Georgia,serif", opacity: 0.85 }}>
           {p.handCount} taş{p.opened ? ` · açtı (${p.openMode === "pairs" ? "çift" : "per"})` : ""}
         </div>
-        <div style={{ marginTop: 2 }}>son: {p.lastDiscard ? <Tile tile={p.lastDiscard} size="sm" /> : "—"}</div>
+        <div
+          onDragOver={returnHere ? (e) => e.preventDefault() : undefined}
+          onDrop={returnHere ? (e) => { e.preventDefault(); returnFloor(); } : undefined}
+          style={{
+            marginTop: 2, borderRadius: 6, padding: "2px 4px",
+            border: returnHere ? `2px dashed ${drag ? "#f2c14e" : "rgba(242,193,78,.5)"}` : "2px solid transparent",
+            background: returnHere && drag ? "rgba(242,193,78,.18)" : "transparent",
+          }}>
+          son: {p.lastDiscard ? <Tile tile={p.lastDiscard} size="sm" /> : "—"}
+          {returnHere && <div style={{ font: "9px Georgia,serif", color: "#f2c14e" }}>↩ buraya geri koy</div>}
+        </div>
       </div>
     );
   };
@@ -127,6 +142,22 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             <div style={{ textAlign: "center" }}>
               <Tile tile={view.indicator} />
               <div style={LABEL}>gösterge · okey {okey.kind === "numbered" ? `${okey.value}` : ""}</div>
+            </div>
+            {/* my discard pile — drag a tile here to discard */}
+            <div style={{ textAlign: "center" }}>
+              <div
+                data-testid="my-discard"
+                onDragOver={canAct ? (e) => e.preventDefault() : undefined}
+                onDrop={canAct ? (e) => { e.preventDefault(); dropToDiscard(); } : undefined}
+                style={{
+                  width: 40, height: 56, borderRadius: 6, margin: "0 auto",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  border: `2px dashed ${canAct && drag ? "#f0d27a" : "rgba(255,255,255,.3)"}`,
+                  background: canAct && drag ? "rgba(240,210,122,.2)" : "rgba(0,0,0,.18)",
+                }}>
+                {myLastDiscard ? <Tile tile={myLastDiscard} size="sm" /> : <span style={{ color: "#9fbfa9", font: "10px Georgia,serif" }}>at</span>}
+              </div>
+              <div style={LABEL}>attıkların{canAct ? " · buraya at" : ""}</div>
             </div>
           </div>
 
