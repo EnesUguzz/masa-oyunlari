@@ -16,6 +16,13 @@ function meldKind(tiles: readonly OkeyTile[], okey: OkeyGameState["okey"]): "run
   return isValidRun(tiles, okey) ? "run" : "set";
 }
 
+/** True if any seat has opened in pairs (çift) mode. */
+function pairsOpenerExists(s: OkeyGameState): boolean {
+  return s.players.some((p) => p.opened && p.openMode === "pairs");
+}
+
+const PAIRS_PROCESS_PER_TURN = 2;
+
 export function applyOpenMelds(s: OkeyGameState, melds: OkeyTile[][]): void {
   requirePhase(s, "act");
   const me = current(s);
@@ -114,6 +121,16 @@ export function applyProcessToMeld(s: OkeyGameState, meldId: string, tiles: Okey
   if (!isValidMeld(candidate, s.okey)) {
     throw new InvalidMoveError("processed tiles do not form a valid meld");
   }
+  // A pairs (çift) opener cannot lay series, but may add at most 2 tiles onto an
+  // existing series per turn.
+  if (me.openMode === "pairs") {
+    const already = me.processTurnSeq === s.turnSeq ? (me.processedThisTurn ?? 0) : 0;
+    if (already + tiles.length > PAIRS_PROCESS_PER_TURN) {
+      throw new ModeLockedError(`çift açan oyuncu bir turda en fazla ${PAIRS_PROCESS_PER_TURN} taş işleyebilir`);
+    }
+    me.processTurnSeq = s.turnSeq;
+    me.processedThisTurn = already + tiles.length;
+  }
   removeTilesFromHand(me, tiles);
   consumeFloorIfLaid(s, tiles);
   meld.tiles = candidate;
@@ -174,6 +191,14 @@ export function applyOpenNewMeld(s: OkeyGameState, tiles: OkeyTile[]): void {
     return;
   }
   if (!isValidMeld(tiles, s.okey)) {
+    // A melds (per) opener may also melt a leftover pair onto the table, but only
+    // once another player has opened in pairs (çift) mode.
+    if (tiles.length === 2 && isPair(tiles[0]!, tiles[1]!, s.okey) && pairsOpenerExists(s)) {
+      removeTilesFromHand(me, tiles);
+      consumeFloorIfLaid(s, tiles);
+      s.tableMelds.push({ id: String(s.meldSeq++), owner: me.seat, kind: "pair", tiles });
+      return;
+    }
     throw new InvalidMoveError("tiles are not a valid run or set");
   }
   removeTilesFromHand(me, tiles);

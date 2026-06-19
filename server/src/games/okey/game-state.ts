@@ -22,6 +22,10 @@ export interface PlayerHandState {
   // Set when the player opened a hand while still holding an unused tile taken
   // from the discard pile (floor). Adds a flat 101 penalty at scoring time.
   floorPenalty: boolean;
+  // Per-turn bookkeeping for the pairs-opener "process at most 2 tiles onto a
+  // series per turn" rule. Optional (internal counters; absent = 0 / no turn).
+  processTurnSeq?: number | null;
+  processedThisTurn?: number;
 }
 
 export interface FinishType {

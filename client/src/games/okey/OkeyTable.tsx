@@ -69,6 +69,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const prevSeat = (view.you + 3) % 4; // the seat I draw from / return a floor tile to
   const myLastDiscard = me?.lastDiscard ?? null;
   const canReturn = canAct && view.pendingFloorTile !== null;
+  const pairsOpenerExists = view.players.some((p) => p.opened && p.openMode === "pairs");
 
   // --- rack interactions ----------------------------------------------------
   const dropToSlot = (to: number): void => { if (drag) move(drag.from, to); clearDrag(); };
@@ -80,6 +81,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const openWithMelds = (): void => { onMove({ kind: "openMelds", melds: validMeldGroups }); setSel(null); };
   const openWithPairs = (): void => { onMove({ kind: "openPairs", pairs: validPairGroups }); setSel(null); };
   const layMelds = (): void => { for (const tiles of validMeldGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
+  const layPairs = (): void => { for (const tiles of validPairGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
   // "Seri Diz" / "Çift Diz": rearrange the rack (no opening), highest score first.
   // When there is nothing to form, leave the rack untouched.
   const arrangeSeri = (): void => { const next = arrangeMelds(view.yourHand, okey, RACK_ROWS, RACK_COLS); if (next) setSlots(next); setSel(null); };
@@ -272,6 +274,14 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             )}
             {opened && openMode === "melds" && (
               <button disabled={validMeldGroups.length === 0} onClick={layMelds}>Perleri Diz ({validMeldGroups.length})</button>
+            )}
+            {opened && openMode === "melds" && pairsOpenerExists && (
+              <button disabled={validPairGroups.length === 0} onClick={layPairs} title="Çift açan oyuncu olduğu için kalan çiftlerini eritebilirsin">
+                Çiftleri Erit ({validPairGroups.length})
+              </button>
+            )}
+            {opened && openMode === "pairs" && (
+              <button disabled={validPairGroups.length === 0} onClick={layPairs}>Çiftleri Diz ({validPairGroups.length})</button>
             )}
 
             {/* assist-only helpers: rearrange the rack (do not open) */}

@@ -75,6 +75,12 @@
   primitif `minPairs` parametreli.
 - **Mod kilidi (KESİN):** Bir oyuncu çiftle açtıysa o el **normal per açamaz**; per
   açtıysa çift açamaz. Sonradan mod değiştiremez.
+- **Karışık mod / işleme (KARARLAŞTIRILDI — kullanıcı kuralı, 2026-06-19):**
+  Masada en az bir oyuncu **çiftle** açmışsa, **per (seri) ile açan** oyuncu elinde
+  kalan **çiftleri de masaya eritebilir** (per modunda olmasına rağmen). **Çiftle
+  açan** oyuncu ise hiç **seri açamaz/dizemez**, ancak mevcut bir seriye **tur başına
+  en fazla 2 taş işleyebilir** (örn. eli 11-12-13 olsa bile bir turda yalnız 11-12'yi
+  ekleyebilir). Çifte taş eklenemez.
 - **Çifte giden taş alamaz (KESİN):** Çifte giden oyuncu **yerden / rakip taşını
   alamaz**, yalnız kapalı desteden kendi çektiğiyle ilerler.
 - **Çifte giden oyuncu sayısında sınır YOK (KARARLAŞTIRILDI):** Dört oyuncu da çifte
