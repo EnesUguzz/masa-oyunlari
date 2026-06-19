@@ -35,6 +35,9 @@ export function applyOpenMelds(s: OkeyGameState, melds: OkeyTile[][]): void {
   const floorTile = s.pendingFloorTile;
   const consumed = consumeFloorIfLaid(s, flat);
   if (consumed && floorTile) recordFeeding(s, me, "melds", floorTile);
+  // Opening while still holding an unused floor tile is allowed, but costs a flat
+  // 101 penalty at scoring; clear the pending flag so the player can play on.
+  if (s.pendingFloorTile !== null) { me.floorPenalty = true; s.pendingFloorTile = null; }
 
   for (const m of melds) {
     s.tableMelds.push({ id: String(s.meldSeq++), owner: me.seat, kind: meldKind(m, s.okey), tiles: m });
@@ -86,6 +89,7 @@ export function applyOpenPairs(s: OkeyGameState, pairs: OkeyTile[][]): void {
   const floorTile = s.pendingFloorTile;
   const consumed = consumeFloorIfLaid(s, flat);
   if (consumed && floorTile) recordFeeding(s, me, "pairs", floorTile);
+  if (s.pendingFloorTile !== null) { me.floorPenalty = true; s.pendingFloorTile = null; }
 
   for (const p of pairs) {
     s.tableMelds.push({ id: String(s.meldSeq++), owner: me.seat, kind: "pair", tiles: p });

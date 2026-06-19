@@ -92,6 +92,7 @@ export function allGroups(slots: readonly (string | null)[], rows: number, cols:
 export function useRackSlots(hand: OkeyTile[]): {
   slots: (string | null)[];
   move: (from: number, to: number) => void;
+  setSlots: (next: (string | null)[]) => void;
 } {
   const handKey = hand.map(tileSig).join(",");
   const [slots, setSlots] = useState<(string | null)[]>(() =>
@@ -102,5 +103,5 @@ export function useRackSlots(hand: OkeyTile[]): {
     setSlots((prev) => reconcileSlots(prev, sigs, RACK_SLOTS));
   }, [handKey]);
   const move = (from: number, to: number): void => setSlots((s) => moveSlot(s, from, to));
-  return { slots, move };
+  return { slots, move, setSlots };
 }

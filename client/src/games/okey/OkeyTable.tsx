@@ -5,7 +5,9 @@ import { SlottedRack } from "./SlottedRack.js";
 import { Tile } from "./Tile.js";
 import { Scoreboard } from "./Scoreboard.js";
 import { useRackSlots, allGroups, sigToTile, RACK_ROWS, RACK_COLS } from "./rack-slots.js";
-import { classifyOrdered, meldPoints, bestPairs, type GroupKind } from "./meld-check.js";
+import { tileSig } from "./rack-order.js";
+import { classifyOrdered, meldPoints, naturalValue, orderMeldForDisplay, type GroupKind } from "./meld-check.js";
+import { arrangeMelds, arrangePairs } from "./arrange.js";
 import { buildDiscard, buildProcess, buildOpenNewMeld } from "./move-builder.js";
 
 const FELT: CSSProperties = {
@@ -27,7 +29,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const openThreshold = view.config.openThreshold;
   const minPairs = view.config.minPairs;
 
-  const { slots, move } = useRackSlots(view.yourHand);
+  const { slots, move, setSlots } = useRackSlots(view.yourHand);
   const [sel, setSel] = useState<number | null>(null); // selected rack slot
   const [drag, setDrag] = useState<{ from: number; tile: OkeyTile } | null>(null);
   const clearDrag = (): void => setDrag(null);
@@ -48,21 +50,36 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const validMeldGroups = classed.filter((x) => x.kind === "run" || x.kind === "set").map((x) => x.g.tiles);
   const validPairGroups = classed.filter((x) => x.kind === "pair").map((x) => x.g.tiles);
   const meldTotal = validMeldGroups.reduce((s, tiles) => s + meldPoints(tiles, okey), 0);
-  const autoPairs = useMemo(() => bestPairs(view.yourHand, okey), [view.yourHand, okey]);
+  // Points still sitting in hand (penalty risk after opening): face value of each
+  // tile; a held okey/wildcard adds a flat 101 instead of its face value.
+  const heldPoints = useMemo(() => {
+    let sum = 0;
+    let wild = false;
+    for (const t of view.yourHand) {
+      const nat = naturalValue(t, okey);
+      if (nat === null) wild = true;
+      else sum += nat.value;
+    }
+    return { sum, wild };
+  }, [view.yourHand, okey]);
 
   const nick = (seat: number): string => seating.find((s) => s.seat === seat)?.nickname ?? `#${seat}`;
+
+  const floorSig = view.pendingFloorTile ? tileSig(view.pendingFloorTile) : null;
 
   // --- rack interactions ----------------------------------------------------
   const dropToSlot = (to: number): void => { if (drag) move(drag.from, to); clearDrag(); };
   const dropToDiscard = (): void => { if (drag && canAct) onMove(buildDiscard(drag.tile)); clearDrag(); };
+  const returnFloor = (): void => { onMove({ kind: "returnFloorTile" }); clearDrag(); setSel(null); };
   const dropToMeld = (meldId: string): void => { if (drag && canAct && opened) onMove(buildProcess(meldId, [drag.tile])); clearDrag(); };
 
   // --- opening / laying moves -----------------------------------------------
   const openWithMelds = (): void => { onMove({ kind: "openMelds", melds: validMeldGroups }); setSel(null); };
   const openWithPairs = (): void => { onMove({ kind: "openPairs", pairs: validPairGroups }); setSel(null); };
   const layMelds = (): void => { for (const tiles of validMeldGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
-  const autoOpen = (): void => { onMove({ kind: "autoOpen" }); setSel(null); };
-  const autoPairsOpen = (): void => { onMove({ kind: "openPairs", pairs: autoPairs }); setSel(null); };
+  // "Seri Diz" / "Çift Diz": rearrange the rack (no opening), highest score first.
+  const arrangeSeri = (): void => { setSlots(arrangeMelds(view.yourHand, okey, RACK_ROWS, RACK_COLS)); setSel(null); };
+  const arrangeCift = (): void => { setSlots(arrangePairs(view.yourHand, okey, RACK_ROWS, RACK_COLS)); setSel(null); };
 
   const seatBox = (seat: number): JSX.Element | null => {
     const p = view.players.find((x) => x.seat === seat);
@@ -130,7 +147,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
                         background: target && drag ? "rgba(95,208,138,.15)" : "transparent",
                       }}>
                       <div style={{ color: "#bfe0cd", font: "10px Georgia,serif" }}>{m.kind === "pair" ? "çift" : m.kind} · {nick(m.owner)}</div>
-                      <div style={{ display: "flex" }}>{m.tiles.map((t, i) => <Tile key={i} tile={t} size="sm" />)}</div>
+                      <div style={{ display: "flex" }}>{orderMeldForDisplay(m.tiles, okey).map((t, i) => <Tile key={i} tile={t} size="sm" />)}</div>
                     </div>
                   );
                 })}
@@ -154,9 +171,20 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
 
         {/* my rack */}
         <div style={{ background: "linear-gradient(#b58a52,#8a6532)", borderRadius: 12, padding: 10, border: "3px solid #f2c14e", boxShadow: "inset 0 2px 4px rgba(255,255,255,.25)", marginTop: 8 }}>
-          <div style={{ ...LABEL, marginBottom: 6 }}>
-            Senin elin ({view.yourHand.length}) — taşları boşluklarla grupla; yan yana 3+ seri/grup, 2 çift
-            {!opened && <> · açış: <strong>{meldTotal}</strong>/{openThreshold}</>}
+          <div style={{ ...LABEL, marginBottom: 6, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <span>Senin elin ({view.yourHand.length}) — taşları boşluklarla grupla; yan yana 3+ seri/grup, 2 çift</span>
+            {!opened ? (
+              <span style={{
+                font: "700 13px Georgia,serif", padding: "2px 8px", borderRadius: 6,
+                background: meldTotal >= openThreshold ? "#1f7a3a" : "#3a2a12", color: "#ffe9b8",
+              }}>
+                Perler: {meldTotal} puan · açış {openThreshold}
+              </span>
+            ) : (
+              <span style={{ font: "700 13px Georgia,serif", padding: "2px 8px", borderRadius: 6, background: "#3a2a12", color: "#ffe9b8" }}>
+                Elde kalan: {heldPoints.sum} puan{heldPoints.wild ? " (+101 okey)" : ""}
+              </span>
+            )}
           </div>
           <SlottedRack
             slots={slots}
@@ -165,12 +193,38 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             selected={sel}
             dragFrom={drag ? drag.from : null}
             slotKind={slotKind}
+            floorSig={floorSig}
             onSelect={(i) => setSel((p) => (p === i ? null : i))}
             onDragStartSlot={(from, tile) => setDrag({ from, tile })}
             onDropToSlot={dropToSlot}
             onDragEnd={clearDrag}
           />
         </div>
+
+        {/* floor tile taken: use it in a meld, or put it back and draw from the deck */}
+        {canAct && view.pendingFloorTile && (
+          <div style={{
+            display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10,
+            border: "2px solid #f2c14e", borderRadius: 8, padding: 10, background: "#fff8e6",
+          }}>
+            <span style={{ font: "13px Georgia,serif", color: "#7a5c10" }}>
+              Yerden bir taş aldın (sarı çerçeveli). Bir perde kullan, ya da geri koy.
+              <br />Not: kullanmadan el açarsan <strong>+101 ceza</strong>.
+            </span>
+            <span style={{ flex: 1 }} />
+            <button onClick={returnFloor} style={{ fontWeight: 700 }}>↩ Geri koy + desteden çek</button>
+            <div
+              onDragOver={(e) => { e.preventDefault(); }}
+              onDrop={(e) => { e.preventDefault(); returnFloor(); }}
+              style={{
+                minWidth: 150, padding: "8px 12px", borderRadius: 8, textAlign: "center",
+                border: `2px dashed ${drag ? "#caa42a" : "#d8c184"}`,
+                background: drag ? "#fbefc4" : "#fffdf4", color: "#7a5c10", fontWeight: 700,
+              }}>
+              ↩ taşı buraya sürükle (geri koy)
+            </div>
+          </div>
+        )}
 
         {/* action bar */}
         {canAct && (
@@ -189,15 +243,15 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
               <button disabled={validMeldGroups.length === 0} onClick={layMelds}>Perleri Diz ({validMeldGroups.length})</button>
             )}
 
-            {/* assist-only helpers */}
+            {/* assist-only helpers: rearrange the rack (do not open) */}
             {assist === "destekli" && (
-              <button onClick={autoOpen} title="En yüksek puanlı serileri otomatik bulur ve açar/dizer">
+              <button onClick={arrangeSeri} title="Istakadaki taşları en yüksek puanlı serilere/gruplara dizer">
                 Seri Diz
               </button>
             )}
             {assist === "destekli" && !opened && (
-              <button disabled={autoPairs.length < minPairs} onClick={autoPairsOpen} title="En iyi çiftleri otomatik bulur ve açar">
-                Çift Diz ({autoPairs.length}/{minPairs})
+              <button onClick={arrangeCift} title="Istakadaki taşları en iyi çiftlere dizer">
+                Çift Diz
               </button>
             )}
 

@@ -22,6 +22,10 @@ export interface OkeyPlayerView {
   yourHand: OkeyTile[];
   turn: number;
   phase: GamePhase;
+  // The tile this player just took from the discard pile and has not yet used,
+  // if any (only ever set for the seat whose turn it is). Lets the client offer
+  // "put it back". null for everyone else.
+  pendingFloorTile: OkeyTile | null;
   drawPileCount: number;
   players: PublicPlayer[];
   tableMelds: TableMeld[];
@@ -40,6 +44,7 @@ export function toOkeyPlayerView(state: OkeyGameState, seat: number): OkeyPlayer
     yourHand: you.hand.slice(),
     turn: state.turn,
     phase: state.phase,
+    pendingFloorTile: seat === state.turn && state.pendingFloorTile ? { ...state.pendingFloorTile } : null,
     drawPileCount: state.drawPile.length,
     players: state.players.map((p) => {
       const pile = state.discards[p.seat]!;

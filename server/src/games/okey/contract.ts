@@ -13,6 +13,7 @@ const tileSchema = z.discriminatedUnion("kind", [
 export const moveSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("drawFromPile") }).strict(),
   z.object({ kind: z.literal("drawFromDiscard") }).strict(),
+  z.object({ kind: z.literal("returnFloorTile") }).strict(),
   z.object({ kind: z.literal("openMelds"), melds: z.array(z.array(tileSchema)) }).strict(),
   z.object({ kind: z.literal("autoOpen") }).strict(),
   z.object({ kind: z.literal("openPairs"), pairs: z.array(z.array(tileSchema)) }).strict(),

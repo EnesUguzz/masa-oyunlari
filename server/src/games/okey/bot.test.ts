@@ -117,7 +117,7 @@ describe("chooseDiscard", () => {
 });
 
 function ph(seat: number, hand: OkeyTile[], over: Partial<PlayerHandState> = {}): PlayerHandState {
-  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null, ...over };
+  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false, ...over };
 }
 function gs(over: Partial<OkeyGameState> & { players: PlayerHandState[] }): OkeyGameState {
   return {

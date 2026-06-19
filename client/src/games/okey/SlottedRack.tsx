@@ -16,7 +16,7 @@ const KIND_COLOR: Record<GroupKind | "single", string> = {
  * meld feedback while arranging tiles.
  */
 export function SlottedRack({
-  slots, okey, assist, selected, dragFrom, slotKind,
+  slots, okey, assist, selected, dragFrom, slotKind, floorSig,
   onSelect, onDragStartSlot, onDropToSlot, onDragEnd,
 }: {
   slots: (string | null)[];
@@ -25,6 +25,8 @@ export function SlottedRack({
   selected: number | null;
   dragFrom: number | null;
   slotKind: (slotIndex: number) => GroupKind | "single";
+  // Signature of the tile just taken from the floor (to highlight it), if any.
+  floorSig: string | null;
   onSelect: (slotIndex: number) => void;
   onDragStartSlot: (slotIndex: number, tile: OkeyTile) => void;
   onDropToSlot: (slotIndex: number) => void;
@@ -55,12 +57,16 @@ export function SlottedRack({
       } else {
         const tile = sigToTile(sig);
         const faceDown = assist === "destekli" && isWildcard(tile, okey);
+        const isFloor = floorSig !== null && sig === floorSig;
         cells.push(
           <div
             key={idx}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); if (dragFrom !== null) onDropToSlot(idx); }}
-            style={{ ...cellBase, border: `2px solid ${border}`, background: "rgba(255,255,255,.06)" }}
+            style={{
+              ...cellBase, border: `2px solid ${border}`, background: "rgba(255,255,255,.06)",
+              boxShadow: isFloor ? "0 0 0 3px #f2c14e, 0 0 10px #f2c14e" : undefined,
+            }}
           >
             <Tile
               tile={tile}
@@ -70,7 +76,7 @@ export function SlottedRack({
               dragging={dragFrom === idx}
               draggable
               onClick={() => onSelect(idx)}
-              onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onDragStartSlot(idx, tile); }}
+              onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", String(idx)); onDragStartSlot(idx, tile); }}
             />
           </div>,
         );

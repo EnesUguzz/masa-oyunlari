@@ -9,7 +9,7 @@ import { scoreHand } from "./scoring.js";
 const okey: NumberedTile = numbered("red", 13);
 
 function player(seat: number, hand: OkeyTile[], opened: boolean): PlayerHandState {
-  return { seat, playerId: `p${seat}` as PlayerId, team: (seat % 2) as 0 | 1, hand, opened, openMode: opened ? "melds" : null, openScore: 0, pairCount: 0, openedOnTurn: null };
+  return { seat, playerId: `p${seat}` as PlayerId, team: (seat % 2) as 0 | 1, hand, opened, openMode: opened ? "melds" : null, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false };
 }
 
 function ft(over: Partial<FinishType>): FinishType {

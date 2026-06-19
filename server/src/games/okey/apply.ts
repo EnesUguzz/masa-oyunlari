@@ -14,6 +14,7 @@ export function applyMove(state: OkeyGameState, move: Move, bySeat: number): Oke
   switch (move.kind) {
     case "drawFromPile": drawFromPile(s); break;
     case "drawFromDiscard": drawFromDiscard(s); break;
+    case "returnFloorTile": returnFloorTile(s); break;
     case "discard": discard(s, move.tile); break;
     case "openMelds": applyOpenMelds(s, move.melds); break;
     case "autoOpen": applyAutoOpen(s); break;
@@ -48,6 +49,20 @@ function drawFromDiscard(s: OkeyGameState): void {
   me.hand.push(tile);
   s.pendingFloorTile = tile;
   s.phase = "act";
+}
+
+function returnFloorTile(s: OkeyGameState): void {
+  requirePhase(s, "act");
+  const me = current(s);
+  if (s.pendingFloorTile === null) throw new InvalidMoveError("no floor tile to return");
+  if (me.openedOnTurn === s.turnSeq) throw new InvalidMoveError("cannot return the floor tile after opening this turn");
+  // Put the tile back where it came from (the previous seat's discard pile) and
+  // revert to the draw phase so the player can instead draw from the deck.
+  removeTilesFromHand(me, [s.pendingFloorTile]);
+  const prev = (s.turn + 3) % 4;
+  s.discards[prev]!.push(s.pendingFloorTile);
+  s.pendingFloorTile = null;
+  s.phase = "draw";
 }
 
 function discard(s: OkeyGameState, tile: OkeyTile): void {

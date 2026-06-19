@@ -9,7 +9,7 @@ import { applyMove } from "./apply.js";
 const okey: NumberedTile = numbered("red", 13);
 
 function player(seat: number, hand: OkeyTile[], opened: boolean, openMode: "melds" | "pairs" | null): PlayerHandState {
-  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened, openMode, openScore: 0, pairCount: 0, openedOnTurn: null };
+  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened, openMode, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false };
 }
 
 function stateWith(hand: OkeyTile[], melds: TableMeld[], opts?: { opened?: boolean; openMode?: "melds" | "pairs" | null }): OkeyGameState {

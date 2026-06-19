@@ -61,6 +61,11 @@ export function scoreHand(state: OkeyGameState): HandScore {
     }
   }
 
+  // Flat 101 for anyone who opened while holding an unused floor tile.
+  for (const p of state.players) {
+    if (p.floorPenalty) base[p.seat] = (base[p.seat] ?? 0) + 101;
+  }
+
   if (state.config.penalty === "cezali") {
     for (const ev of outcome.feedingEvents) {
       const add = ev.tileValue * (ev.takerMode === "melds" ? 10 : 20);

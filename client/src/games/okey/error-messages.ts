@@ -6,7 +6,7 @@ const MESSAGES: Record<string, string> = {
   NOT_OPENED: "Önce el açman gerekiyor.",
   OPENING_THRESHOLD_NOT_MET: "Açmak için yeterli puanın yok (en az 101 gerekir).",
   MODE_LOCKED: "Bu el açtığın moda (per/çift) kilitlisin.",
-  FLOOR_TILE_UNUSED: "Yerden aldığın taşı bu el bir pere/çifte kullanmalısın.",
+  FLOOR_TILE_UNUSED: "Yerden aldığın taşı ya bir pere/çifte kullan ya da geri koy.",
   TILE_NOT_IN_HAND: "O taş elinde yok.",
   NOT_YOUR_TURN: "Sıra sende değil.",
   ROOM_FULL: "Oda dolu.",

@@ -9,7 +9,7 @@ import { meldThreshold } from "./helpers.js";
 const okey: NumberedTile = numbered("red", 13);
 
 function p(seat: number, opened: boolean, openMode: "melds" | "pairs" | null, openScore: number): PlayerHandState {
-  return { seat, playerId: `p${seat}` as PlayerId, team: (seat % 2) as 0 | 1, hand: [], opened, openMode, openScore, pairCount: 0, openedOnTurn: null };
+  return { seat, playerId: `p${seat}` as PlayerId, team: (seat % 2) as 0 | 1, hand: [], opened, openMode, openScore, pairCount: 0, openedOnTurn: null, floorPenalty: false };
 }
 
 function state(partnerEscalation: "ese-katlamali" | "ese-katlamasiz", players: PlayerHandState[], turn: number): OkeyGameState {

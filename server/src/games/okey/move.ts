@@ -3,6 +3,7 @@ import type { OkeyTile } from "./tile.js";
 export type Move =
   | { kind: "drawFromPile" }
   | { kind: "drawFromDiscard" }
+  | { kind: "returnFloorTile" }
   | { kind: "openMelds"; melds: OkeyTile[][] }
   | { kind: "autoOpen" }
   | { kind: "openPairs"; pairs: OkeyTile[][] }

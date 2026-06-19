@@ -29,6 +29,7 @@ export function createHand(
     openScore: 0,
     pairCount: 0,
     openedOnTurn: null,
+    floorPenalty: false,
   }));
 
   return {

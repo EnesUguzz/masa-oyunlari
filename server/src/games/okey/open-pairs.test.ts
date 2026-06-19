@@ -15,7 +15,7 @@ function pair(color: "red" | "yellow" | "black" | "blue", value: number): OkeyTi
 }
 
 function blankPlayer(seat: number, hand: OkeyTile[]): PlayerHandState {
-  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null };
+  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false };
 }
 
 function pairsState(hand: OkeyTile[], openModes: ("pairs" | null)[] = [null, null, null, null]): OkeyGameState {

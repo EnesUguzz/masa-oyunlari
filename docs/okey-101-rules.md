@@ -42,9 +42,13 @@
 
 - Sıra gelen oyuncu **1 taş çeker** (kapalı desteden **veya** solundaki oyuncunun
   son attığı taşı yerden), sonra elinden **1 taş atar**. El bu döngüyle ilerler.
-- **Yerden taş alma (KARARLAŞTIRILDI):** Yerden alınan taş **hemen bir per/çifte
-  kullanılmak zorunda** (sırf elde tutmak için yerden taş alınamaz). Çifte giden
-  oyuncu yerden alamaz (yukarı bak).
+- **Yerden taş alma (KARARLAŞTIRILDI — kullanıcı kuralı, 2026-06-19):** Yerden
+  alınan taş için üç seçenek vardır: (1) bir per/çifte **kullan** (cezasız),
+  (2) **geri koy** — taşı sürükleyip eski yerine bırak (`returnFloorTile`): taş
+  önceki oyuncunun yığınına döner ve oyuncu artık desteden çekebilir, (3)
+  kullanmadan **el aç** → o oyuncuya el sonu skorunda düz **+101 ceza**.
+  Kullanmadan ve geri koymadan **taş atılamaz**. Çifte giden oyuncu yerden alamaz
+  (yukarı bak).
 - **İşleme (KARARLAŞTIRILDI):** El açtıktan sonra oyuncu **masadaki tüm perlere**
   (kendi + rakip) uygun taş ekleyebilir; ayrıca **kendi yeni perlerini de açabilir**
   (eli açıkken). Çift modunda da bitiş için açıp işleme gerekir (aşağı bak).

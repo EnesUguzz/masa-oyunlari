@@ -8,7 +8,7 @@ import { autoMoves } from "./auto-move.js";
 
 const okey: NumberedTile = numbered("red", 13);
 function p(seat: number, hand: OkeyTile[]): PlayerHandState {
-  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null };
+  return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false };
 }
 function st(over: Partial<OkeyGameState> & { players: PlayerHandState[] }): OkeyGameState {
   return {

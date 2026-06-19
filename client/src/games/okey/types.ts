@@ -48,6 +48,7 @@ export interface OkeyPlayerView {
   yourHand: OkeyTile[];
   turn: number;
   phase: "draw" | "act";
+  pendingFloorTile: OkeyTile | null;
   drawPileCount: number;
   players: PublicPlayer[];
   tableMelds: TableMeld[];
@@ -73,6 +74,7 @@ export interface OkeyTableView {
 export type Move =
   | { kind: "drawFromPile" }
   | { kind: "drawFromDiscard" }
+  | { kind: "returnFloorTile" }
   | { kind: "openMelds"; melds: OkeyTile[][] }
   | { kind: "autoOpen" }
   | { kind: "openPairs"; pairs: OkeyTile[][] }

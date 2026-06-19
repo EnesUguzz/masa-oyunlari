@@ -136,6 +136,11 @@ export function classifyGroup(tiles: readonly OkeyTile[], okey: NumberedTile, mo
   return "invalid";
 }
 
+/** Highest feasible window start for a run (matches server runValues / max sum). */
+function runStart(naturalsValues: readonly number[], total: number): number {
+  return Math.min(Math.min(...naturalsValues), MAX_VALUE - total + 1);
+}
+
 /** Sum of represented values of a valid run/set; 0 for an invalid group. */
 export function meldPoints(tiles: readonly OkeyTile[], okey: NumberedTile): number {
   const { naturals } = partition(tiles, okey);
@@ -143,9 +148,33 @@ export function meldPoints(tiles: readonly OkeyTile[], okey: NumberedTile): numb
   if (!isValidRun(tiles, okey)) return 0;
   // Wildcards sit at the highest feasible window (matches server runValues).
   const total = tiles.length;
-  const values = naturals.map((t) => t.value);
-  const start = Math.min(Math.min(...values), MAX_VALUE - total + 1);
+  const start = runStart(naturals.map((t) => t.value), total);
   let sum = 0;
   for (let i = 0; i < total; i++) sum += start + i;
   return sum;
+}
+
+/**
+ * Order a meld's tiles for display. A run is laid out ascending by represented
+ * value with wildcards (the okey tile) sitting in their gap positions — so a
+ * run shows as e.g. 9·okey·11, never 9·11·okey or with the okey's face value
+ * stranded at the end. Sets and invalid groups keep their given order.
+ */
+export function orderMeldForDisplay(tiles: readonly OkeyTile[], okey: NumberedTile): OkeyTile[] {
+  if (!isValidRun(tiles, okey)) return [...tiles];
+  const total = tiles.length;
+  const { naturals } = partition(tiles, okey);
+  const start = runStart(naturals.map((t) => t.value), total);
+  const arr: (OkeyTile | null)[] = new Array(total).fill(null);
+  const wilds: OkeyTile[] = [];
+  for (const t of tiles) {
+    const nat = naturalValue(t, okey);
+    if (nat === null) { wilds.push(t); continue; }
+    const pos = nat.value - start;
+    if (pos >= 0 && pos < total && arr[pos] === null) arr[pos] = t;
+    else wilds.push(t);
+  }
+  let wi = 0;
+  for (let i = 0; i < total; i++) if (arr[i] === null) arr[i] = wilds[wi++]!;
+  return arr as OkeyTile[];
 }

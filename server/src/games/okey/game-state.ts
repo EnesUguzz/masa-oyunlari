@@ -19,6 +19,9 @@ export interface PlayerHandState {
   openScore: number;
   pairCount: number;
   openedOnTurn: number | null;
+  // Set when the player opened a hand while still holding an unused tile taken
+  // from the discard pile (floor). Adds a flat 101 penalty at scoring time.
+  floorPenalty: boolean;
 }
 
 export interface FinishType {
