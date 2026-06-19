@@ -6,7 +6,7 @@ import { Tile } from "./Tile.js";
 import { Scoreboard } from "./Scoreboard.js";
 import { useRackSlots, allGroups, sigToTile, RACK_ROWS, RACK_COLS } from "./rack-slots.js";
 import { tileSig } from "./rack-order.js";
-import { classifyOrdered, meldPoints, naturalValue, orderMeldForDisplay, type GroupKind } from "./meld-check.js";
+import { classifyOrdered, meldPoints, naturalValue, orderMeldForDisplay, okeySwapTile, type GroupKind } from "./meld-check.js";
 import { arrangeMelds, arrangePairs } from "./arrange.js";
 import { buildDiscard, buildProcess, buildOpenNewMeld } from "./move-builder.js";
 
@@ -171,6 +171,7 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
                 ? <em style={{ color: "#9fbfa9" }}>henüz yok</em>
                 : view.tableMelds.map((m) => {
                   const target = m.kind !== "pair" && canAct && opened;
+                  const swapTile = canAct && opened ? okeySwapTile(m.tiles, m.kind, view.yourHand, okey) : null;
                   return (
                     <div key={m.id}
                       onDragOver={(e) => { if (target) e.preventDefault(); }}
@@ -181,6 +182,14 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
                       }}>
                       <div style={{ color: "#bfe0cd", font: "10px Georgia,serif" }}>{m.kind === "pair" ? "çift" : m.kind} · {nick(m.owner)}</div>
                       <div style={{ display: "flex" }}>{orderMeldForDisplay(m.tiles, okey).map((t, i) => <Tile key={i} tile={t} size="sm" />)}</div>
+                      {swapTile && (
+                        <button
+                          onClick={() => onMove({ kind: "swapOkey", meldId: m.id, tile: swapTile })}
+                          style={{ marginTop: 3, font: "10px Georgia,serif", cursor: "pointer" }}
+                          title="Elindeki gerçek taşı koyup okeyi al">
+                          okeyi al
+                        </button>
+                      )}
                     </div>
                   );
                 })}

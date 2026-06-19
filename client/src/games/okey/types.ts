@@ -80,6 +80,7 @@ export type Move =
   | { kind: "openPairs"; pairs: OkeyTile[][] }
   | { kind: "openNewMeld"; tiles: OkeyTile[] }
   | { kind: "processToMeld"; meldId: string; tiles: OkeyTile[] }
+  | { kind: "swapOkey"; meldId: string; tile: OkeyTile }
   | { kind: "discard"; tile: OkeyTile };
 export interface StartGameConfig {
   pairing: PairingMode;

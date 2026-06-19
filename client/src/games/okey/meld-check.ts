@@ -116,6 +116,30 @@ export function bestPairs(hand: readonly OkeyTile[], okey: NumberedTile): OkeyTi
   return pairs;
 }
 
+/**
+ * If the player holds a concrete tile that the okey (wildcard) in `meldTiles`
+ * stands for, return that tile (so it can be swapped in to take the okey). The
+ * okey's role is inferred by checking which held tile keeps the meld valid.
+ */
+export function okeySwapTile(
+  meldTiles: readonly OkeyTile[],
+  kind: "run" | "set" | "pair",
+  hand: readonly OkeyTile[],
+  okey: NumberedTile,
+): OkeyTile | null {
+  const wIdx = meldTiles.findIndex((t) => isWildcard(t, okey));
+  if (wIdx === -1) return null;
+  for (const cand of hand) {
+    if (isWildcard(cand, okey)) continue;
+    const next = meldTiles.map((t, i) => (i === wIdx ? cand : t));
+    const ok = kind === "pair"
+      ? next.length === 2 && isPair(next[0]!, next[1]!, okey)
+      : isValidRun(next, okey) || isValidSet(next, okey);
+    if (ok) return cand;
+  }
+  return null;
+}
+
 export type GroupKind = "run" | "set" | "pair" | "invalid";
 
 /** Order-sensitive classification used for rack groups (runs must be in order). */

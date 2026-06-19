@@ -2,6 +2,7 @@ import type { OkeyTile } from "./tile.js";
 import { isNumbered } from "./tile.js";
 import type { NumberedTile } from "./tile.js";
 import { isValidMeld, isValidRun } from "./meld.js";
+import { isWildcard } from "./okey.js";
 import { isPair } from "./pairs.js";
 import { meldsTotal } from "./points.js";
 import { InvalidMoveError } from "../../core/errors/index.js";
@@ -175,6 +176,34 @@ export function applyAutoOpen(s: OkeyGameState): void {
       }
     }
   }
+}
+
+/**
+ * "Okey alma/değiştirme": an opened player who holds the concrete tile an okey
+ * (wildcard) stands for in a table meld may put that tile in the meld's place and
+ * take the okey into hand. Only opened players may do this (user rule).
+ */
+export function applySwapOkey(s: OkeyGameState, meldId: string, tile: OkeyTile): void {
+  requirePhase(s, "act");
+  const me = current(s);
+  if (!me.opened) throw new NotOpenedError();
+  if (isWildcard(tile, s.okey)) throw new InvalidMoveError("cannot swap an okey in for an okey");
+  const meld = s.tableMelds.find((m) => m.id === meldId);
+  if (!meld) throw new InvalidMoveError("no such meld on the table");
+  const wIdx = meld.tiles.findIndex((t) => isWildcard(t, s.okey));
+  if (wIdx === -1) throw new InvalidMoveError("that meld has no okey to take");
+
+  const candidate = meld.tiles.map((t, i) => (i === wIdx ? tile : t));
+  const stillValid = meld.kind === "pair"
+    ? candidate.length === 2 && isPair(candidate[0]!, candidate[1]!, s.okey)
+    : isValidMeld(candidate, s.okey);
+  if (!stillValid) throw new InvalidMoveError("the offered tile does not match the okey in this meld");
+
+  removeTilesFromHand(me, [tile]); // throws if the player does not hold it
+  const taken = meld.tiles[wIdx]!;
+  meld.tiles = candidate;
+  if (meld.kind !== "pair") meld.kind = meldKind(candidate, s.okey);
+  me.hand.push(taken);
 }
 
 export function applyOpenNewMeld(s: OkeyGameState, tiles: OkeyTile[]): void {

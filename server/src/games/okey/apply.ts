@@ -5,7 +5,7 @@ import type { Move } from "./move.js";
 import { IllegalDrawError, FloorTileUnusedError } from "./errors.js";
 import { cloneState, current, requirePhase, removeTilesFromHand } from "./helpers.js";
 import { buildExhaustOutcome, buildFinishOutcome } from "./outcome.js";
-import { applyOpenMelds, applyOpenPairs, applyProcessToMeld, applyOpenNewMeld, applyAutoOpen } from "./opening.js";
+import { applyOpenMelds, applyOpenPairs, applyProcessToMeld, applyOpenNewMeld, applyAutoOpen, applySwapOkey } from "./opening.js";
 
 export function applyMove(state: OkeyGameState, move: Move, bySeat: number): OkeyGameState {
   if (state.status !== "playing") throw new InvalidMoveError("hand is not in progress");
@@ -20,6 +20,7 @@ export function applyMove(state: OkeyGameState, move: Move, bySeat: number): Oke
     case "autoOpen": applyAutoOpen(s); break;
     case "openPairs": applyOpenPairs(s, move.pairs); break;
     case "processToMeld": applyProcessToMeld(s, move.meldId, move.tiles); break;
+    case "swapOkey": applySwapOkey(s, move.meldId, move.tile); break;
     case "openNewMeld": applyOpenNewMeld(s, move.tiles); break;
     default: throw new InvalidMoveError("unsupported move");
   }

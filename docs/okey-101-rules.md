@@ -37,6 +37,10 @@
   Yani sahte okey bir perde sadece okey-değerli taşın bulunması gereken yere konabilir.
   Puanı = okey değeridir. (Kodda `naturalValue`: sahte okey → okey-değerli somut taş;
   gerçek okey taşı → wildcard/null.)
+- **Okey alma/değiştirme (KARARLAŞTIRILDI — kullanıcı kuralı, 2026-06-19):** Masadaki
+  bir perde okey (wildcard) somut bir taşı temsil ediyorsa, o taşın gerçeğini elinde
+  tutan ve **EL AÇMIŞ** oyuncu, gerçek taşı perdeki yerine koyup okeyi eline alabilir.
+  El açmamış oyuncu yapamaz. (`swapOkey` hamlesi; per geçerli kalmalı.)
 
 ## Tur akışı (KESİN — çekirdek mekanik, detay 1b)
 
