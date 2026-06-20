@@ -14,7 +14,7 @@ function p(seat: number, opened: boolean, openMode: "melds" | "pairs" | null, op
 
 function state(partnerEscalation: "ese-katlamali" | "ese-katlamasiz", players: PlayerHandState[], turn: number): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "esli", escalation: "katlamali", penalty: "cezasiz", targetHands: 11, partnerEscalation }),
+    config: makeConfig({ pairing: "esli", escalation: "katlamali", targetHands: 11, partnerEscalation }),
     indicator: numbered("red", 12), okey, players,
     drawPile: [], discards: [[], [], [], []], tableMelds: [],
     turn, turnSeq: 0, phase: "act", pendingFloorTile: null,

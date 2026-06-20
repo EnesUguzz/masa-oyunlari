@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { OkeyColor, OkeyTile } from "./types.js";
 import { tileSig } from "./rack-order.js";
 
@@ -30,11 +30,17 @@ export function initialSlots(handSigs: readonly string[], slotCount: number): (s
  * longer in hand (e.g. after a discard/open) are cleared; tiles new to the hand
  * are dropped into the first empty slots. Keeps the player's custom arrangement
  * stable across server state updates.
+ *
+ * `preferredFirstSlot` places the FIRST newcomer (e.g. a tile just drawn/taken
+ * onto a slot the player dropped onto) into that slot when it is empty; otherwise
+ * it falls back to the first empty slot. Lets a drag-draw land where it was dropped
+ * even though the drawn tile's identity is only known after the server responds.
  */
 export function reconcileSlots(
   prev: readonly (string | null)[],
   handSigs: readonly string[],
   slotCount: number,
+  preferredFirstSlot?: number,
 ): (string | null)[] {
   const counts = new Map<string, number>();
   for (const s of handSigs) counts.set(s, (counts.get(s) ?? 0) + 1);
@@ -49,6 +55,13 @@ export function reconcileSlots(
   const remaining: string[] = [];
   for (const [s, c] of counts) for (let k = 0; k < c; k++) remaining.push(s);
   let ri = 0;
+  if (
+    preferredFirstSlot !== undefined &&
+    preferredFirstSlot >= 0 && preferredFirstSlot < slotCount &&
+    next[preferredFirstSlot] === null && ri < remaining.length
+  ) {
+    next[preferredFirstSlot] = remaining[ri++]!;
+  }
   for (let i = 0; i < slotCount && ri < remaining.length; i++) {
     if (next[i] === null) next[i] = remaining[ri++]!;
   }
@@ -93,15 +106,21 @@ export function useRackSlots(hand: OkeyTile[]): {
   slots: (string | null)[];
   move: (from: number, to: number) => void;
   setSlots: (next: (string | null)[]) => void;
+  // Ask the next hand reconcile to place the freshly drawn/taken tile here.
+  setNextDrawSlot: (slot: number) => void;
 } {
   const handKey = hand.map(tileSig).join(",");
   const [slots, setSlots] = useState<(string | null)[]>(() =>
     initialSlots(handKey === "" ? [] : handKey.split(","), RACK_SLOTS),
   );
+  const nextDrawSlotRef = useRef<number | null>(null);
   useEffect(() => {
     const sigs = handKey === "" ? [] : handKey.split(",");
-    setSlots((prev) => reconcileSlots(prev, sigs, RACK_SLOTS));
+    const preferred = nextDrawSlotRef.current;
+    nextDrawSlotRef.current = null;
+    setSlots((prev) => reconcileSlots(prev, sigs, RACK_SLOTS, preferred ?? undefined));
   }, [handKey]);
   const move = (from: number, to: number): void => setSlots((s) => moveSlot(s, from, to));
-  return { slots, move, setSlots };
+  const setNextDrawSlot = (slot: number): void => { nextDrawSlotRef.current = slot; };
+  return { slots, move, setSlots, setNextDrawSlot };
 }

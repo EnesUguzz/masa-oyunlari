@@ -12,9 +12,9 @@ function player(seat: number, hand: OkeyTile[], opened: boolean): PlayerHandStat
   return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened, openMode: opened ? "melds" : null, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false };
 }
 
-function finished(players: PlayerHandState[], outcome: HandOutcome, penalty: "cezasiz" | "cezali" = "cezasiz"): OkeyGameState {
+function finished(players: PlayerHandState[], outcome: HandOutcome): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty, targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12), okey, players,
     drawPile: [], discards: [[], [], [], []], tableMelds: [],
     turn: 0, turnSeq: 5, phase: "act", pendingFloorTile: null,
@@ -72,8 +72,16 @@ describe("scoreHand (essiz)", () => {
   it("cezali feeding: feeder charged tileValue x10 (melds) / x20 (pairs)", () => {
     const players = [player(0, [], true), player(1, [], true), player(2, [], true), player(3, [], true)];
     const feedingEvents: FeedingEvent[] = [{ feederSeat: 2, takerSeat: 3, tileValue: 5, takerMode: "melds" }];
-    const s = finished(players, outcome({ finishType: ft({}), feedingEvents }), "cezali");
+    const s = finished(players, outcome({ finishType: ft({}), feedingEvents }));
     expect(scoreHand(s).perSeat).toEqual([-101, 0, 50, 0]);
+  });
+
+  it("adds the flat discard penalty accumulated during play (not multiplied)", () => {
+    const players = [player(0, [], true), player(1, [], true), player(2, [], true), player(3, [], true)];
+    players[2]!.discardPenalty = 101;
+    const s = finished(players, outcome({ finishType: ft({ okey: true }) })); // m=2
+    // seat 2 opened with an empty hand → 0 · m, plus the flat 101 discard penalty
+    expect(scoreHand(s).perSeat[2]).toBe(101);
   });
 
   it("throws when the hand is not finished", () => {

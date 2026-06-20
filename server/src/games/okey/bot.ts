@@ -15,7 +15,11 @@ function tileVal(t: OkeyTile): number {
   return t.kind === "numbered" ? t.value : 0;
 }
 
-export function chooseDiscard(hand: readonly OkeyTile[], okey: NumberedTile): OkeyTile {
+export function chooseDiscard(
+  hand: readonly OkeyTile[],
+  okey: NumberedTile,
+  tableMelds: OkeyGameState["tableMelds"] = [],
+): OkeyTile {
   if (hand.length === 0) throw new Error("chooseDiscard: empty hand");
   const nonWild = hand.filter((t) => !isWildcard(t, okey));
   const pool = nonWild.length > 0 ? nonWild : [...hand];
@@ -35,7 +39,11 @@ export function chooseDiscard(hand: readonly OkeyTile[], okey: NumberedTile): Ok
     else dead.push(t);
   }
   const candidates = dead.length > 0 ? dead : pool;
-  return candidates.reduce((worst, t) => (tileVal(t) > tileVal(worst) ? t : worst), candidates[0]!);
+  // Avoid the işlek-taş penalty (+101): never discard a tile that could be
+  // processed onto a table run/set when a safe alternative exists.
+  const safe = candidates.filter((t) => findProcessTarget(tableMelds, t, okey) === null);
+  const finalPool = safe.length > 0 ? safe : candidates;
+  return finalPool.reduce((worst, t) => (tileVal(t) > tileVal(worst) ? t : worst), finalPool[0]!);
 }
 
 function findPairs(hand: readonly OkeyTile[], okey: NumberedTile): OkeyTile[][] {
@@ -155,8 +163,9 @@ function decideAct(state: OkeyGameState, seat: number): Move[] {
     }
   }
 
-  // 3. atış
-  moves.push({ kind: "discard", tile: chooseDiscard(hand, okey) });
+  // 3. atış — güncel masadaki perlere (bu tur işlenenler dahil) işlenebilen taşı atma.
+  const liveMelds = [...tableTiles.entries()].map(([id, tiles]) => ({ id, owner: seat, kind: "run" as const, tiles }));
+  moves.push({ kind: "discard", tile: chooseDiscard(hand, okey, liveMelds) });
   return moves;
 }
 

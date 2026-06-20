@@ -7,7 +7,7 @@ import { makeConfig } from "./game-config.js";
 import { applyMove } from "./apply.js";
 
 const okey: NumberedTile = numbered("red", 13);
-const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 });
+const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 });
 
 function player(seat: number, hand: OkeyTile[], over: Partial<PlayerHandState> = {}): PlayerHandState {
   return { seat, playerId: `p${seat}` as PlayerId, team: null, hand, opened: false, openMode: null, openScore: 0, pairCount: 0, openedOnTurn: null, floorPenalty: false, ...over };

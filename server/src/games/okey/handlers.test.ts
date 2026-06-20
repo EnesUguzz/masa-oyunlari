@@ -40,7 +40,7 @@ function setup() {
 describe("okey handlers", () => {
   it("startGame: owner starts, room becomes playing, each seat gets only its own hand", () => {
     const { socket, emits, room, rooms } = setup();
-    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 7 });
+    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", targetHands: 7 });
     expect(rooms.getRoom(room.code)!.status).toBe("playing");
     const states = emits.filter((e) => e.ev === OkeyServerEvents.state);
     expect(states.length).toBe(4);
@@ -55,13 +55,13 @@ describe("okey handlers", () => {
     const sock = makeSocket();
     const nonOwner = { id: "p1" as PlayerId, nickname: "N1" };
     registerOkeyHandlers(sock as unknown as Parameters<typeof registerOkeyHandlers>[0], () => nonOwner, () => room.code, deps);
-    sock.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 7 });
+    sock.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", targetHands: 7 });
     expect(sock.emit).toHaveBeenCalled(); // errorEvent emitted on the socket
   });
 
   it("a timeout auto-plays the current seat and re-broadcasts", () => {
     const { socket, emits, clock } = setup();
-    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 7 });
+    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", targetHands: 7 });
     const before = emits.length;
     clock.advance(1000);
     expect(emits.length).toBeGreaterThan(before);
@@ -82,7 +82,7 @@ describe("okey handlers", () => {
     const socket = makeSocket();
     registerOkeyHandlers(socket as unknown as Parameters<typeof registerOkeyHandlers>[0], () => owner, () => room.code, deps);
 
-    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 7 });
+    socket.fire(OkeyClientEvents.startGame, { pairing: "essiz", escalation: "katlamasiz", targetHands: 7 });
     const lastState = (): { view: { turn: number; phase: string; yourHand: { kind: string; color?: string; value?: number }[] } } =>
       emits.filter((e) => e.sid === "s_p0" && e.ev === OkeyServerEvents.state).at(-1)!.payload as never;
     socket.fire(OkeyClientEvents.move, { move: { kind: "drawFromPile" } });

@@ -14,7 +14,7 @@ function player(seat: number, hand: OkeyTile[], opened: boolean, openMode: "meld
 
 function actState(over: Partial<OkeyGameState> & { players: PlayerHandState[] }): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezali", targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12), okey,
     drawPile: [], discards: [[], [], [], []], tableMelds: [],
     turn: 0, turnSeq: 3, phase: "act", pendingFloorTile: null,

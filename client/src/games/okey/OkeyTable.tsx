@@ -1,10 +1,10 @@
 import type { CSSProperties, JSX } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Move, OkeyTile, OkeyTableView } from "./types.js";
 import { SlottedRack } from "./SlottedRack.js";
 import { Tile } from "./Tile.js";
 import { Scoreboard } from "./Scoreboard.js";
-import { useRackSlots, allGroups, sigToTile, RACK_ROWS, RACK_COLS } from "./rack-slots.js";
+import { useRackSlots, allGroups, RACK_ROWS, RACK_COLS } from "./rack-slots.js";
 import { tileSig } from "./rack-order.js";
 import { classifyOrdered, meldPoints, naturalValue, orderMeldForDisplay, okeySwapTile, type GroupKind } from "./meld-check.js";
 import { arrangeMelds, arrangePairs } from "./arrange.js";
@@ -17,6 +17,13 @@ const FELT: CSSProperties = {
 };
 const LABEL: CSSProperties = { color: "#e7e0cf", font: "13px Georgia, serif" };
 
+// A drag in progress. "slot" = a rack tile (reorder / discard / process); "deck"
+// and "floor" are draw sources dragged onto a rack slot to draw/take a tile.
+type Drag =
+  | { kind: "slot"; from: number; tile: OkeyTile }
+  | { kind: "deck" }
+  | { kind: "floor"; tile: OkeyTile };
+
 export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; onMove: (move: Move) => void; onLeave?: () => void }): JSX.Element {
   const { view, seating } = table;
   const me = view.players.find((p) => p.seat === view.you);
@@ -24,15 +31,23 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const openMode = me?.openMode ?? null;
   const yourTurn = view.turn === view.you;
   const canAct = yourTurn && view.phase === "act";
+  const canDraw = yourTurn && view.phase === "draw";
   const assist = view.config.assist;
   const okey = view.okey;
   const openThreshold = view.config.openThreshold;
   const minPairs = view.config.minPairs;
 
-  const { slots, move, setSlots } = useRackSlots(view.yourHand);
+  const { slots, move, setSlots, setNextDrawSlot } = useRackSlots(view.yourHand);
   const [sel, setSel] = useState<number | null>(null); // selected rack slot
-  const [drag, setDrag] = useState<{ from: number; tile: OkeyTile } | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
   const clearDrag = (): void => setDrag(null);
+  // Slot to play the "drawn tile revealed" flip animation on (cleared shortly after).
+  const [revealSlot, setRevealSlot] = useState<number | null>(null);
+  useEffect(() => {
+    if (revealSlot === null) return;
+    const id = window.setTimeout(() => setRevealSlot(null), 700);
+    return () => window.clearTimeout(id);
+  }, [revealSlot]);
 
   // Contiguous rack groups → live meld/pair classification.
   const groups = useMemo(() => allGroups(slots, RACK_ROWS, RACK_COLS), [slots]);
@@ -72,10 +87,25 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const pairsOpenerExists = view.players.some((p) => p.opened && p.openMode === "pairs");
 
   // --- rack interactions ----------------------------------------------------
-  const dropToSlot = (to: number): void => { if (drag) move(drag.from, to); clearDrag(); };
-  const dropToDiscard = (): void => { if (drag && canAct) onMove(buildDiscard(drag.tile)); clearDrag(); };
+  // Draw/take by dropping the deck or a floor tile onto a rack slot: remember the
+  // target slot so the (server-decided) drawn tile lands where it was dropped.
+  const drawInto = (to: number, mv: Move): void => {
+    const target = slots[to] == null ? to : slots.findIndex((s) => s == null);
+    if (target < 0) return; // rack full — cannot happen during a draw
+    setNextDrawSlot(target);
+    setRevealSlot(target);
+    onMove(mv);
+  };
+  const dropToSlot = (to: number): void => {
+    if (!drag) { return; }
+    if (drag.kind === "slot") move(drag.from, to);
+    else if (drag.kind === "deck" && canDraw) drawInto(to, { kind: "drawFromPile" });
+    else if (drag.kind === "floor" && canDraw && view.pendingFloorTile === null) drawInto(to, { kind: "drawFromDiscard" });
+    clearDrag();
+  };
+  const dropToDiscard = (): void => { if (drag?.kind === "slot" && canAct) onMove(buildDiscard(drag.tile)); clearDrag(); };
   const returnFloor = (): void => { onMove({ kind: "returnFloorTile" }); clearDrag(); setSel(null); };
-  const dropToMeld = (meldId: string): void => { if (drag && canAct && opened) onMove(buildProcess(meldId, [drag.tile])); clearDrag(); };
+  const dropToMeld = (meldId: string): void => { if (drag?.kind === "slot" && canAct && opened) onMove(buildProcess(meldId, [drag.tile])); clearDrag(); };
 
   // --- opening / laying moves -----------------------------------------------
   const openWithMelds = (): void => { onMove({ kind: "openMelds", melds: validMeldGroups }); setSel(null); };
@@ -92,6 +122,8 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
     if (!p) return null;
     const active = view.turn === seat;
     const returnHere = canReturn && seat === prevSeat; // drop the floor tile back here
+    // Drag this seat's last discard onto a rack slot to take it from the floor.
+    const takeHere = canDraw && seat === prevSeat && p.lastDiscard !== null && view.pendingFloorTile === null;
     return (
       <div style={{ textAlign: "center", color: "#e7e0cf", minWidth: 92 }}>
         <div style={{
@@ -112,8 +144,20 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             border: returnHere ? `2px dashed ${drag ? "#f2c14e" : "rgba(242,193,78,.5)"}` : "2px solid transparent",
             background: returnHere && drag ? "rgba(242,193,78,.18)" : "transparent",
           }}>
-          son: {p.lastDiscard ? <Tile tile={p.lastDiscard} size="sm" /> : "—"}
+          son: {takeHere && p.lastDiscard
+            ? (
+              <span onDragEnd={clearDrag} style={{ display: "inline-block", outline: "2px solid #f2c14e", borderRadius: 6 }}>
+                <Tile
+                  tile={p.lastDiscard}
+                  size="sm"
+                  draggable
+                  onDragStart={(e) => { e.dataTransfer.effectAllowed = "copy"; setDrag({ kind: "floor", tile: p.lastDiscard! }); }}
+                />
+              </span>
+            )
+            : p.lastDiscard ? <Tile tile={p.lastDiscard} size="sm" /> : "—"}
           {returnHere && <div style={{ font: "9px Georgia,serif", color: "#f2c14e" }}>↩ buraya geri koy</div>}
+          {takeHere && <div style={{ font: "9px Georgia,serif", color: "#f2c14e" }}>↑ ıstakaya sürükle (al)</div>}
         </div>
       </div>
     );
@@ -123,6 +167,12 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
 
   return (
     <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontFamily: "Georgia, serif" }}>
+      {/* keyframes for the "drawn tile revealed" flip (no CSS files in this app) */}
+      <style>{`@keyframes okeyDraw {
+        0%   { transform: perspective(440px) rotateY(88deg) scale(.82); filter: brightness(2); }
+        55%  { transform: perspective(440px) rotateY(0deg) scale(1.12); filter: brightness(1.35); }
+        100% { transform: perspective(440px) rotateY(0deg) scale(1); filter: brightness(1); }
+      }`}</style>
       <div style={{ flex: 1, minWidth: 420, maxWidth: 760 }}>
         <div style={FELT}>
           {/* opponents */}
@@ -133,13 +183,22 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
           {/* center: deste + gösterge */}
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, margin: "6px 0 12px" }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{
-                position: "relative", width: 38, height: 54, borderRadius: 6, margin: "0 auto",
-                background: "#f4ecd8", boxShadow: "2px 2px 0 #e0d8c2, 4px 4px 0 #d2c9b0, 6px 7px 12px rgba(0,0,0,.4)",
-              }}>
+              <div
+                data-testid="draw-pile"
+                draggable={canDraw && view.drawPileCount > 0}
+                onDragStart={canDraw && view.drawPileCount > 0
+                  ? (e) => { e.dataTransfer.effectAllowed = "copy"; setDrag({ kind: "deck" }); }
+                  : undefined}
+                onDragEnd={clearDrag}
+                style={{
+                  position: "relative", width: 38, height: 54, borderRadius: 6, margin: "0 auto",
+                  background: "#f4ecd8", boxShadow: "2px 2px 0 #e0d8c2, 4px 4px 0 #d2c9b0, 6px 7px 12px rgba(0,0,0,.4)",
+                  cursor: canDraw && view.drawPileCount > 0 ? "grab" : "default",
+                  outline: canDraw && view.drawPileCount > 0 ? "2px solid #f2c14e" : "none",
+                }}>
                 <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", font: "800 18px Georgia,serif", color: "rgba(40,40,40,.4)" }}>{view.drawPileCount}</span>
               </div>
-              <div style={LABEL}>deste</div>
+              <div style={LABEL}>deste{canDraw && view.drawPileCount > 0 ? " · çek ↓" : ""}</div>
             </div>
             <div style={{ textAlign: "center" }}>
               <Tile tile={view.indicator} />
@@ -154,8 +213,8 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
                 style={{
                   width: 40, height: 56, borderRadius: 6, margin: "0 auto",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  border: `2px dashed ${canAct && drag ? "#f0d27a" : "rgba(255,255,255,.3)"}`,
-                  background: canAct && drag ? "rgba(240,210,122,.2)" : "rgba(0,0,0,.18)",
+                  border: `2px dashed ${canAct && drag?.kind === "slot" ? "#f0d27a" : "rgba(255,255,255,.3)"}`,
+                  background: canAct && drag?.kind === "slot" ? "rgba(240,210,122,.2)" : "rgba(0,0,0,.18)",
                 }}>
                 {myLastDiscard ? <Tile tile={myLastDiscard} size="sm" /> : <span style={{ color: "#9fbfa9", font: "10px Georgia,serif" }}>at</span>}
               </div>
@@ -203,11 +262,14 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
           {table.match.status === "finished" && onLeave && <> · <button onClick={onLeave}>Lobiye Dön</button></>}
         </p>
 
-        {/* draw controls */}
-        {view.phase === "draw" && yourTurn && (
-          <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-            <button onClick={() => onMove({ kind: "drawFromPile" })}>Desteden çek ({view.drawPileCount})</button>
-            <button onClick={() => onMove({ kind: "drawFromDiscard" })}>Yerden al</button>
+        {/* draw: drag the deck or the left player's discard onto a rack slot */}
+        {canDraw && (
+          <div style={{
+            margin: "8px 0", padding: "6px 10px", borderRadius: 8,
+            background: "rgba(242,193,78,.14)", border: "1px dashed rgba(242,193,78,.55)",
+            color: "#e7e0cf", font: "12px Georgia,serif",
+          }}>
+            Çekmek için <strong>desteyi</strong> ya da soldaki oyuncunun attığı <strong>taşı</strong> ıstakadaki boş bir yuvaya sürükle.
           </div>
         )}
 
@@ -233,11 +295,14 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             okey={okey}
             assist={assist}
             selected={sel}
-            dragFrom={drag ? drag.from : null}
+            dragFrom={drag?.kind === "slot" ? drag.from : null}
+            dragActive={drag !== null}
+            highlightEmpty={canDraw && (drag?.kind === "deck" || drag?.kind === "floor")}
+            revealSlot={revealSlot}
             slotKind={slotKind}
             floorSig={floorSig}
             onSelect={(i) => setSel((p) => (p === i ? null : i))}
-            onDragStartSlot={(from, tile) => setDrag({ from, tile })}
+            onDragStartSlot={(from, tile) => setDrag({ kind: "slot", from, tile })}
             onDropToSlot={dropToSlot}
             onDragEnd={clearDrag}
           />
@@ -307,22 +372,16 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
 
             <span style={{ flex: 1 }} />
 
-            {/* discard: select a tile then "At", or drag onto the zone */}
-            <button
-              disabled={sel === null || slots[sel] == null}
-              onClick={() => { if (sel !== null && slots[sel] != null) { onMove(buildDiscard(sigToTile(slots[sel]!))); setSel(null); } }}
-              style={{ fontWeight: 700 }}>
-              At (seçili)
-            </button>
+            {/* discard: drag a rack tile onto the zone */}
             <div
               onDragOver={(e) => { e.preventDefault(); }}
               onDrop={(e) => { e.preventDefault(); dropToDiscard(); }}
               style={{
                 minWidth: 160, padding: "8px 12px", borderRadius: 8, textAlign: "center",
-                border: `2px dashed ${drag ? "#c33" : "#ccc"}`,
-                background: drag ? "#fdecec" : "#fafafa", color: "#a00", fontWeight: 700,
+                border: `2px dashed ${drag?.kind === "slot" ? "#c33" : "#ccc"}`,
+                background: drag?.kind === "slot" ? "#fdecec" : "#fafafa", color: "#a00", fontWeight: 700,
               }}>
-              🗑 ya da taşı buraya sürükle
+              🗑 atmak için taşı buraya sürükle
             </div>
           </div>
         )}

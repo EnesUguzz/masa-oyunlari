@@ -5,7 +5,7 @@ import { makeConfig } from "./game-config.js";
 import { createHand } from "./setup.js";
 import { applyMove } from "./apply.js";
 
-const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 });
+const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 });
 const players = ["p0", "p1", "p2", "p3"] as PlayerId[];
 
 // Seat 0 opens the hand in "act" (it holds 22 and discards first, without drawing).

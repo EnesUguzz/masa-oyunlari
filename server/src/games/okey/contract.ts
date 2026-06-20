@@ -27,7 +27,6 @@ export const startGameSchema = z
   .object({
     pairing: z.enum(["essiz", "esli"]),
     escalation: z.enum(["katlamasiz", "katlamali"]),
-    penalty: z.enum(["cezasiz", "cezali"]),
     partnerEscalation: z.enum(["ese-katlamali", "ese-katlamasiz"]).optional(),
     targetHands: z.union([z.literal(7), z.literal(11), z.literal(21)]),
     assist: z.enum(["destekli", "desteksiz"]).optional(),

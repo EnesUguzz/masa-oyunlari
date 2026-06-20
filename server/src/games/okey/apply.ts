@@ -3,7 +3,8 @@ import type { OkeyTile } from "./tile.js";
 import type { OkeyGameState } from "./game-state.js";
 import type { Move } from "./move.js";
 import { IllegalDrawError, FloorTileUnusedError } from "./errors.js";
-import { cloneState, current, requirePhase, removeTilesFromHand } from "./helpers.js";
+import { isWildcard } from "./okey.js";
+import { cloneState, current, requirePhase, removeTilesFromHand, isProcessableDiscard } from "./helpers.js";
 import { buildExhaustOutcome, buildFinishOutcome } from "./outcome.js";
 import { applyOpenMelds, applyOpenPairs, applyProcessToMeld, applyOpenNewMeld, applyAutoOpen, applySwapOkey } from "./opening.js";
 
@@ -42,7 +43,8 @@ function drawFromPile(s: OkeyGameState): void {
 function drawFromDiscard(s: OkeyGameState): void {
   requirePhase(s, "draw");
   const me = current(s);
-  if (me.openMode === "pairs") throw new IllegalDrawError("a pairs opener cannot take from the discard");
+  // A pairs player MAY take from the floor (user rule); if used, the feeder is
+  // penalized at ×20 in cezalı mode (see scoreHand / recordFeeding).
   const prev = (s.turn + 3) % 4;
   const pile = s.discards[prev]!;
   if (pile.length === 0) throw new IllegalDrawError("no discard available to take");
@@ -76,6 +78,11 @@ function discard(s: OkeyGameState, tile: OkeyTile): void {
     s.status = "finished";
     s.outcome = buildFinishOutcome(s, me, tile);
     return;
+  }
+  // Non-finishing discard: a flat +101 for throwing away the okey, or a tile that
+  // could be processed onto a table run/set (the finishing tile above is exempt).
+  if (isWildcard(tile, s.okey) || isProcessableDiscard(tile, s.tableMelds, s.okey)) {
+    me.discardPenalty = (me.discardPenalty ?? 0) + 101;
   }
   s.phase = "draw";
   s.turn = (s.turn + 1) % 4;

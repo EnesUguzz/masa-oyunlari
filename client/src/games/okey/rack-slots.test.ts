@@ -28,6 +28,20 @@ describe("rack-slots", () => {
     expect(next).toEqual([tileSig(b3), null, tileSig(r6), null]);
   });
 
+  it("reconcileSlots drops a newcomer into the preferred empty slot when given", () => {
+    const prev = [tileSig(r5), null, null, null];
+    // b3 is new; prefer slot 2 (empty) instead of the first empty (slot 1)
+    const next = reconcileSlots(prev, [tileSig(r5), tileSig(b3)], 4, 2);
+    expect(next).toEqual([tileSig(r5), null, tileSig(b3), null]);
+  });
+
+  it("reconcileSlots falls back to first empty when the preferred slot is occupied", () => {
+    const prev = [tileSig(r5), null, tileSig(r6), null];
+    // prefer slot 2 but it is occupied by r6 → newcomer goes to first empty (slot 1)
+    const next = reconcileSlots(prev, [tileSig(r5), tileSig(r6), tileSig(b3)], 4, 2);
+    expect(next).toEqual([tileSig(r5), tileSig(b3), tileSig(r6), null]);
+  });
+
   it("moveSlot moves into an empty slot and swaps into an occupied one", () => {
     const s = [tileSig(r5), null, tileSig(r6), null];
     expect(moveSlot(s, 0, 1)).toEqual([null, tileSig(r5), tileSig(r6), null]);

@@ -5,7 +5,6 @@ export type OkeyTile = NumberedTile | FakeJoker;
 
 export type PairingMode = "essiz" | "esli";
 export type EscalationMode = "katlamasiz" | "katlamali";
-export type PenaltyMode = "cezasiz" | "cezali";
 export type PartnerEscalation = "ese-katlamali" | "ese-katlamasiz";
 export type TargetHands = 7 | 11 | 21;
 export type AssistMode = "destekli" | "desteksiz";
@@ -13,7 +12,6 @@ export type AssistMode = "destekli" | "desteksiz";
 export interface OkeyConfig {
   pairing: PairingMode;
   escalation: EscalationMode;
-  penalty: PenaltyMode;
   partnerEscalation: PartnerEscalation;
   targetHands: TargetHands;
   openThreshold: number;
@@ -85,7 +83,6 @@ export type Move =
 export interface StartGameConfig {
   pairing: PairingMode;
   escalation: EscalationMode;
-  penalty: PenaltyMode;
   partnerEscalation?: PartnerEscalation;
   targetHands: TargetHands;
   assist?: AssistMode;

@@ -20,9 +20,9 @@ describe("okey contract", () => {
     expect(() => moveSchema.parse({ kind: "drawFromPile", extra: 1 })).toThrow();
   });
   it("validates startGame config and the move envelope", () => {
-    const cfg = startGameSchema.parse({ pairing: "esli", escalation: "katlamali", penalty: "cezali", targetHands: 11 });
+    const cfg = startGameSchema.parse({ pairing: "esli", escalation: "katlamali", targetHands: 11 });
     expect(cfg.targetHands).toBe(11);
-    expect(() => startGameSchema.parse({ pairing: "x", escalation: "katlamali", penalty: "cezali", targetHands: 11 })).toThrow();
+    expect(() => startGameSchema.parse({ pairing: "x", escalation: "katlamali", targetHands: 11 })).toThrow();
     expect(okeyMoveSchema.parse({ move: { kind: "drawFromPile" } }).move.kind).toBe("drawFromPile");
   });
 });

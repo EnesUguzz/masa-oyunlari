@@ -16,7 +16,7 @@ const KIND_COLOR: Record<GroupKind | "single", string> = {
  * meld feedback while arranging tiles.
  */
 export function SlottedRack({
-  slots, okey, assist, selected, dragFrom, slotKind, floorSig,
+  slots, okey, assist, selected, dragFrom, dragActive, highlightEmpty, revealSlot, slotKind, floorSig,
   onSelect, onDragStartSlot, onDropToSlot, onDragEnd,
 }: {
   slots: (string | null)[];
@@ -24,6 +24,12 @@ export function SlottedRack({
   assist: AssistMode;
   selected: number | null;
   dragFrom: number | null;
+  // Any drag is in progress (rack tile, deck, or floor) — enables slot drops.
+  dragActive: boolean;
+  // Emphasize empty slots as drop targets (a deck/floor draw is being dragged).
+  highlightEmpty: boolean;
+  // Slot whose tile was just drawn/taken — plays the reveal flip animation.
+  revealSlot: number | null;
   slotKind: (slotIndex: number) => GroupKind | "single";
   // Signature of the tile just taken from the floor (to highlight it), if any.
   floorSig: string | null;
@@ -46,26 +52,32 @@ export function SlottedRack({
       const kind = slotKind(idx);
       const border = sig === null ? EMPTY_BORDER : KIND_COLOR[kind];
       if (sig === null) {
+        const emptyBorder = highlightEmpty ? "#f2c14e" : border;
         cells.push(
           <div
             key={idx}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); if (dragFrom !== null) onDropToSlot(idx); }}
-            style={{ ...cellBase, border: `2px dashed ${border}`, background: "rgba(0,0,0,.12)" }}
+            onDrop={(e) => { e.preventDefault(); if (dragActive) onDropToSlot(idx); }}
+            style={{
+              ...cellBase, border: `2px dashed ${emptyBorder}`,
+              background: highlightEmpty ? "rgba(242,193,78,.16)" : "rgba(0,0,0,.12)",
+            }}
           />,
         );
       } else {
         const tile = sigToTile(sig);
         const faceDown = assist === "destekli" && isWildcard(tile, okey);
         const isFloor = floorSig !== null && sig === floorSig;
+        const reveal = idx === revealSlot;
         cells.push(
           <div
             key={idx}
             onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => { e.preventDefault(); if (dragFrom !== null) onDropToSlot(idx); }}
+            onDrop={(e) => { e.preventDefault(); if (dragActive) onDropToSlot(idx); }}
             style={{
               ...cellBase, border: `2px solid ${border}`, background: "rgba(255,255,255,.06)",
-              boxShadow: isFloor ? "0 0 0 3px #f2c14e, 0 0 10px #f2c14e" : undefined,
+              boxShadow: isFloor || reveal ? "0 0 0 3px #f2c14e, 0 0 10px #f2c14e" : undefined,
+              animation: reveal ? "okeyDraw 480ms ease-out" : undefined,
             }}
           >
             <Tile

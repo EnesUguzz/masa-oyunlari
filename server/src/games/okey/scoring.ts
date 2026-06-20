@@ -61,16 +61,17 @@ export function scoreHand(state: OkeyGameState): HandScore {
     }
   }
 
-  // Flat 101 for anyone who opened while holding an unused floor tile.
+  // Flat 101 for anyone who opened while holding an unused floor tile, plus any
+  // discard penalties accrued during play (okey / processable tile discards).
   for (const p of state.players) {
     if (p.floorPenalty) base[p.seat] = (base[p.seat] ?? 0) + 101;
+    if (p.discardPenalty) base[p.seat] = (base[p.seat] ?? 0) + p.discardPenalty;
   }
 
-  if (state.config.penalty === "cezali") {
-    for (const ev of outcome.feedingEvents) {
-      const add = ev.tileValue * (ev.takerMode === "melds" ? 10 : 20);
-      base[ev.feederSeat] = (base[ev.feederSeat] ?? 0) + add;
-    }
+  // Feeding penalties always apply (the game has no penalty-free mode).
+  for (const ev of outcome.feedingEvents) {
+    const add = ev.tileValue * (ev.takerMode === "melds" ? 10 : 20);
+    base[ev.feederSeat] = (base[ev.feederSeat] ?? 0) + add;
   }
 
   if (state.config.pairing !== "esli") {

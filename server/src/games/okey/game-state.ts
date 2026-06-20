@@ -26,6 +26,10 @@ export interface PlayerHandState {
   // series per turn" rule. Optional (internal counters; absent = 0 / no turn).
   processTurnSeq?: number | null;
   processedThisTurn?: number;
+  // Flat +101 penalties accrued by discarding the okey or a tile that could be
+  // processed onto a table run/set (the finishing discard is exempt). Applied at
+  // scoring time. Optional (absent = 0).
+  discardPenalty?: number;
 }
 
 export interface FinishType {

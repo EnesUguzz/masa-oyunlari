@@ -21,7 +21,7 @@ describe("engine integration", () => {
     const hand = [...m1, ...m2, ...m3, extra];
 
     const s0: OkeyGameState = {
-      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
       indicator: numbered("red", 12), okey,
       players: [player(0, hand), player(1, []), player(2, []), player(3, [])],
       drawPile: [numbered("red", 8)], discards: [[], [], [], []], tableMelds: [],
@@ -48,7 +48,7 @@ describe("engine integration", () => {
     const last = numbered("red", 1);
     const hand = [...m1, ...m2, ...m3, last];
     const s0: OkeyGameState = {
-      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
       indicator: numbered("red", 12), okey,
       players: [player(0, hand), player(1, []), player(2, []), player(3, [])],
       drawPile: [], discards: [[], [], [], []], tableMelds: [],

@@ -12,7 +12,7 @@ function p(seat: number, hand: OkeyTile[]): PlayerHandState {
 }
 function st(over: Partial<OkeyGameState> & { players: PlayerHandState[] }): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12), okey, drawPile: [], discards: [[], [], [], []], tableMelds: [],
     turn: 0, turnSeq: 0, phase: "draw", pendingFloorTile: null, highestOpenScore: null, highestOpenPairs: null,
     feedingEvents: [], meldSeq: 0, status: "playing", outcome: null, ...over,

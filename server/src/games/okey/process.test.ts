@@ -14,7 +14,7 @@ function player(seat: number, hand: OkeyTile[], opened: boolean, openMode: "meld
 
 function stateWith(hand: OkeyTile[], melds: TableMeld[], opts?: { opened?: boolean; openMode?: "melds" | "pairs" | null }): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12), okey,
     players: [
       player(0, hand, opts?.opened ?? true, opts?.openMode ?? "melds"),

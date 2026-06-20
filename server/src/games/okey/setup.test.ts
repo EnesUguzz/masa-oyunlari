@@ -6,7 +6,7 @@ import { createHand } from "./setup.js";
 import { applyMove } from "./apply.js";
 import { isNumbered } from "./tile.js";
 
-const config = makeConfig({ pairing: "esli", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 });
+const config = makeConfig({ pairing: "esli", escalation: "katlamasiz", targetHands: 11 });
 const players = ["p0", "p1", "p2", "p3"] as PlayerId[];
 
 describe("createHand", () => {
@@ -36,7 +36,7 @@ describe("createHand", () => {
   it("assigns facing teams in esli (0&2 vs 1&3), null in essiz", () => {
     const s = createHand(config, players, new SeededRng(2));
     expect(s.players.map((p) => p.team)).toEqual([0, 1, 0, 1]);
-    const solo = createHand(makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }), players, new SeededRng(2));
+    const solo = createHand(makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }), players, new SeededRng(2));
     expect(solo.players.every((p) => p.team === null)).toBe(true);
   });
 

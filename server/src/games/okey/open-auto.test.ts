@@ -9,7 +9,7 @@ import { applyMove } from "./apply.js";
 function stateWithHand(hand: NumberedTile[], opts?: { opened?: boolean }): OkeyGameState {
   const okey: NumberedTile = numbered("red", 13);
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12),
     okey,
     players: [

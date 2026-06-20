@@ -105,12 +105,12 @@
   toplamını ≥ +1 geçmeli** (örn. biri 140 açtıysa sonraki ≥141). Eskalasyon 1b'de;
   1a'da eşik **parametre** (`minPoints`).
 
-## İşleme / besleme cezaları (KARARLAŞTIRILDI — yalnız "cezalı" modda; mekanik 1b, kesin puan 1c)
+## İşleme / besleme cezaları (KARARLAŞTIRILDI — cezalar her zaman açık; mekanik 1b, puan 1c)
 
-> **Mod bağımlı:** Aşağıdaki besleme cezaları yalnız **"cezalı"** modda işler;
-> **"cezasız"** modda hiçbiri uygulanmaz. (Bkz. mod matrisi.)
+> **Cezasız mod kaldırıldı (2026-06-20):** Oyunun "cezasız" modu yoktur; aşağıdaki
+> cezaların **tümü her oyunda işler**. (Bkz. mod matrisi.)
 
-- **Besleme / işlek taş cezası (KARARLAŞTIRILDI):** Bir oyuncu attığı taşı **başka bir
+- **Besleme / yerden-alma cezası (KARARLAŞTIRILDI):** Bir oyuncu attığı taşı **başka bir
   oyuncu yerden alıp** bir pere yerleştirip **el açarsa**, **atan (besleyen) oyuncu**
   ceza alır:
   - Alan oyuncu **seri (per) modundaysa → taşın değeri × 10**,
@@ -118,7 +118,14 @@
   - Örnek: 5 atıldı, alan seriyle açtı → atan **+50** ceza.
   - **İstisna:** Alan oyuncu **zaten açmışsa** (sonradan işliyorsa) **kimseye ceza yok**;
     yine de aldığı taşı kullanmak zorunda. Bitiş için atılan **son taş** da ceza dışıdır.
-- **Okey atma cezası = 101:** Oyuncu okey (wildcard) taşını yere atarsa **101 ceza**.
+- **İşlenebilir taş atma cezası = 101 (KARARLAŞTIRILDI 2026-06-20):** Masadaki **herhangi
+  bir seri/sete işlenebilecek** (eklenince per geçerli kalan) bir taşı yere atan oyuncu
+  **+101 ceza** alır. **El açmamış** oyuncuya da uygulanır (masada uygun per varsa).
+  Çiftlere taş işlenemediği için **çiftler hedef değildir**. Eli bitiren **son atılan
+  taş muaftır**.
+- **Okey atma cezası = 101:** Oyuncu okey (wildcard) taşını yere atarsa **101 ceza**
+  (eli bitiren son taş muaf). Okey her pere işlenebildiğinden bu, işlenebilir-atma
+  cezasının özel hâlidir; **atma başına en fazla bir +101** yazılır.
 - **Yerden okey alma cezası = 101:** Okey taşı yalnız izinli durumda yerden alınır;
   kural dışı alınırsa **101 ceza**.
 - **Eksik puanla (101 altı) açma:** Açılan taşlar **geri alınır + 101 ceza**.
@@ -145,9 +152,11 @@
 
 **Çarpandan bağımsız (sabit) ek cezalar** — `m` ile çarpılmaz:
 - **Elde okey kalma:** açmış oyuncu el sonunda elinde okey tutuyorsa **+101** (sabit).
-- **Besleme cezası (yalnız cezalı mod):** her `FeedingEvent` için besleyene
+- **Besleme cezası (her zaman açık):** her `FeedingEvent` için besleyene
   **taş değeri × 10** (alan seri) / **× 20** (alan çift). (1b olayı kaydeder.)
-- Okey atma / yerden kural-dışı okey alma / 101-altı açma cezaları: **101** (sabit).
+- **İşlenebilir/okey taş atma:** atan oyuncuya **+101** (sabit; eli bitiren son taş
+  muaf; atma başına en fazla bir kez). 1b `discard()` anında biriktirir.
+- Yerden kural-dışı okey alma / 101-altı açma cezaları: **101** (sabit).
 
 **Deste tükenmesi:** bitiren olmadan deste biterse o el **herkes 202 ceza** alır
 (sabit, m yok) ve maç sonraki ele devam eder. **4-çift iptali yoktur** (yukarı bak);
@@ -157,11 +166,11 @@
 
 ## Oyun modları ve oyun sonu (KARARLAŞTIRILDI)
 
-- **Mod matrisi (3 boyut + 1 alt-seçenek):**
-  `{eşsiz, eşli} × {katlamasız, katlamalı} × {cezasız, cezalı}`.
+- **Mod matrisi (2 boyut + 1 alt-seçenek):**
+  `{eşsiz, eşli} × {katlamasız, katlamalı}`.
   - **eşli/eşsiz:** takım mı bireysel mi.
   - **katlamalı/katlamasız:** açış eşiği sabit mi (101/5-çift) yoksa eskale mi.
-  - **cezasız/cezalı:** besleme cezaları (×10/×20) **kapalı** mı **açık** mı.
+  - **Cezalar her zaman açık** (cezasız mod yoktur, 2026-06-20).
   - **eşe-katlamalı / eşe-katlamasız (alt-seçenek):** yalnız **katlamalı + eşli**
     seçilince anlamlı; oda kurucusu seçer. **Eşe-katlamasız:** bir oyuncunun açış eşiği
     **partner hariç** en yüksek açışı geçer (partnerini geçmek zorunda değil; ilk açanın

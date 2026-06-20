@@ -6,7 +6,7 @@ import { createHand } from "./setup.js";
 import { applyMove } from "./apply.js";
 import { toOkeyPlayerView } from "./view.js";
 
-const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 });
+const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 });
 const players = ["p0", "p1", "p2", "p3"] as PlayerId[];
 
 describe("toOkeyPlayerView", () => {

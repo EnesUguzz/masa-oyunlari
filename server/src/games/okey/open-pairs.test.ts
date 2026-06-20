@@ -20,7 +20,7 @@ function blankPlayer(seat: number, hand: OkeyTile[]): PlayerHandState {
 
 function pairsState(hand: OkeyTile[], openModes: ("pairs" | null)[] = [null, null, null, null]): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator, okey,
     players: openModes.map((m, seat) => {
       const p = blankPlayer(seat, seat === 0 ? hand : []);

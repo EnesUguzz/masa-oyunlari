@@ -16,9 +16,9 @@ function ft(over: Partial<FinishType>): FinishType {
   return { elden: false, okey: false, pairs: false, ...over };
 }
 
-function esliFinished(players: PlayerHandState[], outcome: HandOutcome, penalty: "cezasiz" | "cezali" = "cezasiz"): OkeyGameState {
+function esliFinished(players: PlayerHandState[], outcome: HandOutcome): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "esli", escalation: "katlamasiz", penalty, targetHands: 11 }),
+    config: makeConfig({ pairing: "esli", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12), okey, players,
     drawPile: [], discards: [[], [], [], []], tableMelds: [],
     turn: 0, turnSeq: 5, phase: "act", pendingFloorTile: null,
@@ -62,7 +62,7 @@ describe("scoreHand feeding coverage", () => {
     const feedingEvents: FeedingEvent[] = [{ feederSeat: 1, takerSeat: 2, tileValue: 6, takerMode: "pairs" }];
     // essiz config to read raw perSeat without team override:
     const s: OkeyGameState = {
-      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezali", targetHands: 11 }),
+      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
       indicator: numbered("red", 12), okey, players,
       drawPile: [], discards: [[], [], [], []], tableMelds: [],
       turn: 0, turnSeq: 5, phase: "act", pendingFloorTile: null,
@@ -77,7 +77,7 @@ describe("scoreHand feeding coverage", () => {
     const players = [player(0, [], false), player(1, [], false), player(2, [], false), player(3, [], false)];
     const feedingEvents: FeedingEvent[] = [{ feederSeat: 0, takerSeat: 1, tileValue: 4, takerMode: "melds" }];
     const s: OkeyGameState = {
-      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezali", targetHands: 11 }),
+      config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
       indicator: numbered("red", 12), okey, players,
       drawPile: [], discards: [[], [], [], []], tableMelds: [],
       turn: 0, turnSeq: 5, phase: "act", pendingFloorTile: null,

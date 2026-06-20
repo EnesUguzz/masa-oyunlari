@@ -7,7 +7,7 @@ import { OkeySession } from "./session.js";
 function players(): Player[] {
   return [0, 1, 2, 3].map((i) => ({ id: `p${i}` as PlayerId, nickname: `N${i}` }));
 }
-const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 7 });
+const config = makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 7 });
 
 function playToEnd(session: OkeySession): void {
   let guard = 0;
@@ -21,8 +21,16 @@ function playToEnd(session: OkeySession): void {
       if (session.isOver || session.handNo !== before) continue;
     }
     const view = session.tableViewFor(seat).view;
-    const tile = view.yourHand[view.yourHand.length - 1]!;
-    session.apply(seat, { kind: "discard", tile });
+    // Discard a non-okey tile: dumping the okey now costs a flat +101, which would
+    // break this exhaustion scenario's equal-totals invariant.
+    const ok = view.okey;
+    const hand = view.yourHand;
+    let idx = hand.length - 1;
+    for (let i = hand.length - 1; i >= 0; i--) {
+      const t = hand[i]!;
+      if (!(t.kind === "numbered" && t.color === ok.color && t.value === ok.value)) { idx = i; break; }
+    }
+    session.apply(seat, { kind: "discard", tile: hand[idx]! });
   }
 }
 

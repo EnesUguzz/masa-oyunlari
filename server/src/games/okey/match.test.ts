@@ -5,8 +5,8 @@ import { createMatch, applyHandScore } from "./match.js";
 import type { HandScore } from "./scoring.js";
 
 const players = ["p0", "p1", "p2", "p3"] as PlayerId[];
-const essiz = makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 2 as 7 });
-const esli = makeConfig({ pairing: "esli", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 2 as 7 });
+const essiz = makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 2 as 7 });
+const esli = makeConfig({ pairing: "esli", escalation: "katlamasiz", targetHands: 2 as 7 });
 
 const hs = (perSeat: number[], perTeam: [number, number] | null = null): HandScore => ({ perSeat, perTeam });
 

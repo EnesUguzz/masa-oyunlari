@@ -1,6 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator } from "@playwright/test";
 
 test("a single human fills with bots, starts a game, and plays a move", async ({ page }) => {
+  const dragTo = async (src: Locator, tgt: Locator): Promise<void> => {
+    const dt = await page.evaluateHandle(() => new DataTransfer());
+    await src.dispatchEvent("dragstart", { dataTransfer: dt });
+    await tgt.dispatchEvent("dragover", { dataTransfer: dt });
+    await tgt.dispatchEvent("drop", { dataTransfer: dt });
+  };
+
   await page.goto("/");
 
   await page.getByRole("textbox").fill("Ben");
@@ -16,18 +23,19 @@ test("a single human fills with bots, starts a game, and plays a move", async ({
   await page.getByRole("button", { name: "Oyunu Başlat" }).click();
 
   await expect(page.getByText(/Senin elin \(22/)).toBeVisible();
-  // The starting player holds 22 tiles and opens in the "act" phase: it must
-  // discard without drawing, so there is no draw button yet — only the assist
-  // helper ("Seri Diz", shown in destekli mode) and the "At (seçili)" discard.
+  // The starting player holds 22 tiles in the "act" phase: it must discard without
+  // drawing. Drawing is drag-only (no buttons) and its hint shows only in the draw
+  // phase, so it must be absent now; the assist helper "Seri Diz" is visible.
+  await expect(page.getByText(/Çekmek için/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Seri Diz/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Desteden çek/ })).toHaveCount(0);
 
-  // select the first tile and discard it via the At button
-  await page.locator('[data-testid="hand"] button').first().click();
-  await page.getByRole("button", { name: /^At \(seçili\)/ }).click();
+  // discard by dragging the first rack tile onto the discard pile
+  await dragTo(page.locator('[data-testid="hand"] button').first(), page.getByTestId("my-discard"));
 
-  // bots auto-play; the turn returns to you in the draw phase
-  await expect(page.getByRole("button", { name: /Desteden çek/ })).toBeVisible();
-  await page.getByRole("button", { name: /Desteden çek/ }).click();
+  // bots auto-play; the turn returns to you in the draw phase → the draw hint appears
+  await expect(page.getByText(/Çekmek için/)).toBeVisible({ timeout: 5000 });
+
+  // draw by dragging the deck onto a rack tile (lands in the first empty slot)
+  await dragTo(page.getByTestId("draw-pile"), page.locator('[data-testid="hand"] button').first());
   await expect(page.getByText(/Senin elin \(22/)).toBeVisible();
 });

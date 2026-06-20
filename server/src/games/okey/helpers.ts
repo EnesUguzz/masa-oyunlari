@@ -1,7 +1,17 @@
-import type { OkeyTile } from "./tile.js";
+import type { OkeyTile, NumberedTile } from "./tile.js";
 import { isNumbered, tilesEqual } from "./tile.js";
-import type { OkeyGameState, PlayerHandState, HandOutcome } from "./game-state.js";
+import { isValidMeld } from "./meld.js";
+import type { OkeyGameState, PlayerHandState, HandOutcome, TableMeld } from "./game-state.js";
 import { WrongPhaseError, TileNotInHandError } from "./errors.js";
+
+/**
+ * True if `tile` could be processed onto SOME existing run/set on the table —
+ * i.e. appending it to a meld keeps that meld valid. Pairs are not processable.
+ * Used to penalize discarding a tile the player should have laid (işlek taş).
+ */
+export function isProcessableDiscard(tile: OkeyTile, melds: readonly TableMeld[], okey: NumberedTile): boolean {
+  return melds.some((m) => m.kind !== "pair" && isValidMeld([...m.tiles, tile], okey));
+}
 
 function cloneTile(t: OkeyTile): OkeyTile {
   return t.kind === "numbered" ? { kind: "numbered", color: t.color, value: t.value } : { kind: "fakeJoker" };

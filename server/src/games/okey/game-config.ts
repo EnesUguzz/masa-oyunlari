@@ -1,6 +1,5 @@
 export type PairingMode = "essiz" | "esli";
 export type EscalationMode = "katlamasiz" | "katlamali";
-export type PenaltyMode = "cezasiz" | "cezali";
 export type TargetHands = 7 | 11 | 21;
 export type PartnerEscalation = "ese-katlamali" | "ese-katlamasiz";
 // Assist mode is presentational/help only (it does not change game rules):
@@ -15,7 +14,6 @@ export const DEFAULT_ASSIST: AssistMode = "destekli";
 export interface OkeyGameConfig {
   pairing: PairingMode;
   escalation: EscalationMode;
-  penalty: PenaltyMode;
   targetHands: TargetHands;
   openThreshold: number;
   minPairs: number;
@@ -26,7 +24,6 @@ export interface OkeyGameConfig {
 export interface OkeyGameConfigInput {
   pairing: PairingMode;
   escalation: EscalationMode;
-  penalty: PenaltyMode;
   targetHands: TargetHands;
   openThreshold?: number;
   minPairs?: number;
@@ -38,7 +35,6 @@ export function makeConfig(input: OkeyGameConfigInput): OkeyGameConfig {
   return {
     pairing: input.pairing,
     escalation: input.escalation,
-    penalty: input.penalty,
     targetHands: input.targetHands,
     openThreshold: input.openThreshold ?? DEFAULT_OPEN_THRESHOLD,
     minPairs: input.minPairs ?? DEFAULT_MIN_PAIRS,

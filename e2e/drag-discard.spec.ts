@@ -17,6 +17,7 @@ test("drag a tile onto the discard pile to discard", async ({ page }) => {
   await tgt.dispatchEvent("dragover", { dataTransfer: dt });
   await tgt.dispatchEvent("drop", { dataTransfer: dt });
 
-  // after discarding one tile, seat 0 drops from 22; bots play; it returns to draw
-  await expect(page.getByRole("button", { name: /Desteden çek/ })).toBeVisible({ timeout: 5000 });
+  // after discarding one tile, seat 0 drops from 22; bots play; it returns to the
+  // draw phase, where the (drag-only) draw hint appears
+  await expect(page.getByText(/Çekmek için/)).toBeVisible({ timeout: 5000 });
 });

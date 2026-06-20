@@ -114,6 +114,14 @@ describe("chooseDiscard", () => {
     const t = chooseDiscard(hand, okey);
     expect(t).toEqual(numbered("black", 9));
   });
+
+  it("masadaki bir pere islenebilen tasi atmaz (islek cezasindan kacinir)", () => {
+    const melds = [{ id: "m", owner: 1, kind: "run" as const, tiles: [numbered("yellow", 9), numbered("yellow", 10), numbered("yellow", 11)] }];
+    // yellow 12 ölü ve yüksek değerli ama yellow run'a işlenebilir → +101 riski.
+    const hand: OkeyTile[] = [numbered("yellow", 12), numbered("black", 5)];
+    const t = chooseDiscard(hand, okey, melds);
+    expect(t).toEqual(numbered("black", 5));
+  });
 });
 
 function ph(seat: number, hand: OkeyTile[], over: Partial<PlayerHandState> = {}): PlayerHandState {
@@ -121,7 +129,7 @@ function ph(seat: number, hand: OkeyTile[], over: Partial<PlayerHandState> = {})
 }
 function gs(over: Partial<OkeyGameState> & { players: PlayerHandState[] }): OkeyGameState {
   return {
-    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", penalty: "cezasiz", targetHands: 11 }),
+    config: makeConfig({ pairing: "essiz", escalation: "katlamasiz", targetHands: 11 }),
     indicator: numbered("red", 12), okey, drawPile: [], discards: [[], [], [], []], tableMelds: [],
     turn: 0, turnSeq: 0, phase: "draw", pendingFloorTile: null, highestOpenScore: null, highestOpenPairs: null,
     feedingEvents: [], meldSeq: 0, status: "playing", outcome: null, ...over,
