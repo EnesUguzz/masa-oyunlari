@@ -7,7 +7,7 @@ import { tileSig } from "./rack-order.js";
 // contiguous filled slots within a single row — that is how the player forms
 // melds/pairs directly on the rack instead of in a separate staging area.
 export const RACK_ROWS = 2;
-export const RACK_COLS = 14;
+export const RACK_COLS = 16;
 export const RACK_SLOTS = RACK_ROWS * RACK_COLS;
 
 /** Reconstruct the concrete tile from a signature (inverse of tileSig). */

@@ -1,24 +1,57 @@
-import type { CSSProperties, JSX } from "react";
+import type { CSSProperties, DragEvent, JSX } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { Move, OkeyTile, OkeyTableView } from "./types.js";
 import { SlottedRack } from "./SlottedRack.js";
 import { Tile } from "./Tile.js";
-import { Scoreboard } from "./Scoreboard.js";
 import { useRackSlots, allGroups, RACK_ROWS, RACK_COLS } from "./rack-slots.js";
-import { tileSig } from "./rack-order.js";
 import { classifyOrdered, meldPoints, naturalValue, orderMeldForDisplay, okeySwapTile, type GroupKind } from "./meld-check.js";
 import { arrangeMelds, arrangePairs } from "./arrange.js";
 import { buildDiscard, buildProcess, buildOpenNewMeld } from "./move-builder.js";
 
-const FELT: CSSProperties = {
-  background: "radial-gradient(ellipse at 50% 45%, #2c6e49, #1d5236 62%, #173f2b)",
-  borderRadius: 12, padding: 16, position: "relative",
-  boxShadow: "inset 0 0 0 3px #5a4128, 0 10px 28px rgba(0,0,0,.4)",
+// ---- Modern Kıraathane theme tokens (mirrors design-mockup.html) -------------------
+const T = {
+  felt1: "#15433a", felt2: "#0e2a25", feltEdge: "#0a201c",
+  brass: "#d9a441", brassSoft: "#e8c578",
+  onFelt: "#eae3d1", muted: "#9fb6ac",
+  panel: "#142420", panelBorder: "#2c4138",
+  btn: "#1e342d", btnBorder: "#334d43",
 };
-const LABEL: CSSProperties = { color: "#e7e0cf", font: "13px Georgia, serif" };
+const PAGE_BG = "radial-gradient(120% 90% at 50% -10%, #20302b 0%, #0c1714 60%, #070f0d 100%)";
 
-// A drag in progress. "slot" = a rack tile (reorder / discard / process); "deck"
-// and "floor" are draw sources dragged onto a rack slot to draw/take a tile.
+const FELT: CSSProperties = {
+  position: "relative", borderRadius: 22, padding: 18,
+  background: `radial-gradient(130% 100% at 50% 40%, ${T.felt1}, ${T.felt2} 70%, ${T.feltEdge} 100%)`,
+  boxShadow: "inset 0 0 0 10px rgba(0,0,0,.18), inset 0 0 70px rgba(0,0,0,.45), 0 24px 60px rgba(0,0,0,.5)",
+  border: "1px solid rgba(255,255,255,.05)",
+};
+const CHIP = (on: boolean): CSSProperties => ({
+  font: "600 11px Inter,system-ui,sans-serif", letterSpacing: 0.3,
+  color: on ? "#fff" : T.onFelt, background: "rgba(0,0,0,.26)",
+  border: `1px solid ${on ? T.brass : "rgba(217,164,65,.4)"}`, padding: "4px 11px", borderRadius: 999,
+});
+const PANEL: CSSProperties = {
+  background: T.panel, border: `1px solid ${T.panelBorder}`, borderRadius: 16, padding: 12,
+  boxShadow: "0 14px 30px rgba(0,0,0,.35)",
+};
+const HBTN: CSSProperties = {
+  font: "600 12.5px Inter,system-ui,sans-serif", color: T.onFelt, cursor: "pointer",
+  background: T.btn, border: `1px solid ${T.btnBorder}`, borderRadius: 12, padding: "10px 8px",
+  writingMode: "vertical-rl", transform: "rotate(180deg)", boxShadow: "0 2px 6px rgba(0,0,0,.25)",
+};
+const abtn = (variant: "primary" | "plain", disabled: boolean): CSSProperties => ({
+  font: "600 14px Inter,system-ui,sans-serif", textAlign: "left", cursor: disabled ? "default" : "pointer",
+  display: "flex", alignItems: "center", gap: 11, padding: "12px 13px", borderRadius: 12, width: "100%",
+  color: variant === "primary" ? "#1c1c1c" : T.onFelt,
+  background: variant === "primary" ? `linear-gradient(160deg,${T.brassSoft},${T.brass})` : T.btn,
+  border: variant === "primary" ? "1px solid transparent" : `1px solid ${T.btnBorder}`,
+  boxShadow: variant === "primary" ? "0 4px 12px rgba(217,164,65,.3)" : "none",
+  opacity: disabled ? 0.5 : 1,
+});
+const ICO: CSSProperties = {
+  width: 26, height: 26, borderRadius: 7, display: "grid", placeItems: "center", font: "13px Inter",
+  background: "rgba(0,0,0,.16)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
+};
+
 type Drag =
   | { kind: "slot"; from: number; tile: OkeyTile }
   | { kind: "deck" }
@@ -34,70 +67,49 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const canDraw = yourTurn && view.phase === "draw";
   const assist = view.config.assist;
   const okey = view.okey;
-  const openThreshold = view.config.openThreshold;
-  const minPairs = view.config.minPairs;
+  const openThreshold = view.meldOpenNeed;
+  const minPairs = view.pairOpenNeed;
+
+  // full-bleed page background while at the table
+  useEffect(() => {
+    const prev = document.body.style.background;
+    document.body.style.background = PAGE_BG;
+    return () => { document.body.style.background = prev; };
+  }, []);
 
   const { slots, move, setSlots, setNextDrawSlot } = useRackSlots(view.yourHand);
-  const [sel, setSel] = useState<number | null>(null); // selected rack slot
+  const [sel, setSel] = useState<number | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const clearDrag = (): void => setDrag(null);
-  // Slot to play the "drawn tile revealed" flip animation on (cleared shortly after).
-  const [revealSlot, setRevealSlot] = useState<number | null>(null);
-  useEffect(() => {
-    if (revealSlot === null) return;
-    const id = window.setTimeout(() => setRevealSlot(null), 700);
-    return () => window.clearTimeout(id);
-  }, [revealSlot]);
 
-  // Contiguous rack groups → live meld/pair classification.
   const groups = useMemo(() => allGroups(slots, RACK_ROWS, RACK_COLS), [slots]);
   const classed = useMemo(
     () => groups.map((g) => ({ g, kind: (g.tiles.length === 1 ? "single" : classifyOrdered(g.tiles, okey)) as GroupKind | "single" })),
     [groups, okey],
   );
-  const slotKindMap = useMemo(() => {
-    const m = new Map<number, GroupKind | "single">();
-    for (const { g, kind } of classed) for (const idx of g.slotIndices) m.set(idx, kind);
-    return m;
-  }, [classed]);
-  const slotKind = (i: number): GroupKind | "single" => slotKindMap.get(i) ?? "single";
 
   const validMeldGroups = classed.filter((x) => x.kind === "run" || x.kind === "set").map((x) => x.g.tiles);
   const validPairGroups = classed.filter((x) => x.kind === "pair").map((x) => x.g.tiles);
   const meldTotal = validMeldGroups.reduce((s, tiles) => s + meldPoints(tiles, okey), 0);
-  // Points still sitting in hand (penalty risk after opening): face value of each
-  // tile; a held okey/wildcard adds a flat 101 instead of its face value.
-  const heldPoints = useMemo(() => {
-    let sum = 0;
-    let wild = false;
-    for (const t of view.yourHand) {
-      const nat = naturalValue(t, okey);
-      if (nat === null) wild = true;
-      else sum += nat.value;
-    }
-    return { sum, wild };
-  }, [view.yourHand, okey]);
 
   const nick = (seat: number): string => seating.find((s) => s.seat === seat)?.nickname ?? `#${seat}`;
-
-  const floorSig = view.pendingFloorTile ? tileSig(view.pendingFloorTile) : null;
-  const prevSeat = (view.you + 3) % 4; // the seat I draw from / return a floor tile to
+  const prevSeat = (view.you + 3) % 4;
   const myLastDiscard = me?.lastDiscard ?? null;
   const canReturn = canAct && view.pendingFloorTile !== null;
   const pairsOpenerExists = view.players.some((p) => p.opened && p.openMode === "pairs");
+  const topSeat = (view.you + 2) % 4;
+  const rightSeat = (view.you + 1) % 4;
+  const leftSeat = prevSeat;
 
-  // --- rack interactions ----------------------------------------------------
-  // Draw/take by dropping the deck or a floor tile onto a rack slot: remember the
-  // target slot so the (server-decided) drawn tile lands where it was dropped.
+  // --- interactions ---------------------------------------------------------
   const drawInto = (to: number, mv: Move): void => {
     const target = slots[to] == null ? to : slots.findIndex((s) => s == null);
-    if (target < 0) return; // rack full — cannot happen during a draw
+    if (target < 0) return;
     setNextDrawSlot(target);
-    setRevealSlot(target);
     onMove(mv);
   };
   const dropToSlot = (to: number): void => {
-    if (!drag) { return; }
+    if (!drag) return;
     if (drag.kind === "slot") move(drag.from, to);
     else if (drag.kind === "deck" && canDraw) drawInto(to, { kind: "drawFromPile" });
     else if (drag.kind === "floor" && canDraw && view.pendingFloorTile === null) drawInto(to, { kind: "drawFromDiscard" });
@@ -107,189 +119,295 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
   const returnFloor = (): void => { onMove({ kind: "returnFloorTile" }); clearDrag(); setSel(null); };
   const dropToMeld = (meldId: string): void => { if (drag?.kind === "slot" && canAct && opened) onMove(buildProcess(meldId, [drag.tile])); clearDrag(); };
 
-  // --- opening / laying moves -----------------------------------------------
   const openWithMelds = (): void => { onMove({ kind: "openMelds", melds: validMeldGroups }); setSel(null); };
   const openWithPairs = (): void => { onMove({ kind: "openPairs", pairs: validPairGroups }); setSel(null); };
   const layMelds = (): void => { for (const tiles of validMeldGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
   const layPairs = (): void => { for (const tiles of validPairGroups) onMove(buildOpenNewMeld(tiles)); setSel(null); };
-  // "Seri Diz" / "Çift Diz": rearrange the rack (no opening), highest score first.
-  // When there is nothing to form, leave the rack untouched.
   const arrangeSeri = (): void => { const next = arrangeMelds(view.yourHand, okey, RACK_ROWS, RACK_COLS); if (next) setSlots(next); setSel(null); };
   const arrangeCift = (): void => { const next = arrangePairs(view.yourHand, okey, RACK_ROWS, RACK_COLS); if (next) setSlots(next); setSel(null); };
+  const autoProcess = (): void => { onMove({ kind: "autoProcess" }); setSel(null); };
+  const undoTurn = (): void => { onMove({ kind: "undoTurn" }); setSel(null); };
 
-  const seatBox = (seat: number): JSX.Element | null => {
+  // "Seri Aç": opens with melds before opening, else lays further melds.
+  const seriAc = (): void => (opened ? layMelds() : openWithMelds());
+  const ciftAc = (): void => (opened ? layPairs() : openWithPairs());
+  const canSeri = canAct && (!opened ? meldTotal >= openThreshold : openMode === "melds" && validMeldGroups.length > 0);
+  const canCift = canAct && (!opened
+    ? validPairGroups.length >= minPairs
+    : (openMode === "pairs" || pairsOpenerExists) && validPairGroups.length > 0);
+
+  // --- mini renderers -------------------------------------------------------
+  const miniDigits = (nVal: number): JSX.Element[] => String(nVal).split("").map((d, i) => (
+    <span key={i} style={{
+      width: 12, height: 16, borderRadius: 2, display: "grid", placeItems: "center",
+      font: '800 10px "Rubik",system-ui,sans-serif', color: "#c1121f",
+      background: "linear-gradient(180deg,#fdfaf1,#ece1c9)", border: "1px solid #ddd1b6",
+      boxShadow: "inset 0 1px 1px rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.35)",
+    }}>{d}</span>
+  ));
+  const openNeed = (value: number, dir: "left" | "right"): JSX.Element => (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }} title="El açmak için gereken">
+      <span style={{ font: "800 14px Inter,sans-serif", color: T.brass, lineHeight: 1 }}>{dir === "right" ? "→" : "←"}</span>
+      <div style={{ display: "flex", gap: 1 }}>{miniDigits(value)}</div>
+    </div>
+  );
+
+  const seatChip = (seat: number): JSX.Element => {
     const p = view.players.find((x) => x.seat === seat);
-    if (!p) return null;
     const active = view.turn === seat;
-    const returnHere = canReturn && seat === prevSeat; // drop the floor tile back here
-    // Drag this seat's last discard onto a rack slot to take it from the floor.
-    const takeHere = canDraw && seat === prevSeat && p.lastDiscard !== null && view.pendingFloorTile === null;
     return (
-      <div style={{ textAlign: "center", color: "#e7e0cf", minWidth: 92 }}>
+      <div style={{ textAlign: "center", color: T.onFelt, minWidth: 52 }}>
         <div style={{
           width: 40, height: 40, margin: "0 auto 3px", borderRadius: "50%",
-          background: "linear-gradient(#b9924f,#7c5e30)", color: "#1d1d1d",
-          display: "flex", alignItems: "center", justifyContent: "center", font: "700 13px Georgia,serif",
-          boxShadow: active ? "0 0 0 3px #f2c14e, 0 0 12px #f2c14e" : "0 2px 5px rgba(0,0,0,.4)",
-        }}>{nick(seat).slice(0, 3)}</div>
-        <div style={{ font: "12px Georgia,serif" }}>{nick(seat)}{active ? " ▶" : ""}</div>
-        <div style={{ font: "11px Georgia,serif", opacity: 0.85 }}>
-          {p.handCount} taş{p.opened ? ` · açtı (${p.openMode === "pairs" ? "çift" : "per"})` : ""}
-        </div>
-        <div
-          onDragOver={returnHere ? (e) => e.preventDefault() : undefined}
-          onDrop={returnHere ? (e) => { e.preventDefault(); returnFloor(); } : undefined}
-          style={{
-            marginTop: 2, borderRadius: 6, padding: "2px 4px",
-            border: returnHere ? `2px dashed ${drag ? "#f2c14e" : "rgba(242,193,78,.5)"}` : "2px solid transparent",
-            background: returnHere && drag ? "rgba(242,193,78,.18)" : "transparent",
-          }}>
-          son: {takeHere && p.lastDiscard
-            ? (
-              <span onDragEnd={clearDrag} style={{ display: "inline-block", outline: "2px solid #f2c14e", borderRadius: 6 }}>
-                <Tile
-                  tile={p.lastDiscard}
-                  size="sm"
-                  draggable
-                  onDragStart={(e) => { e.dataTransfer.effectAllowed = "copy"; setDrag({ kind: "floor", tile: p.lastDiscard! }); }}
-                />
-              </span>
-            )
-            : p.lastDiscard ? <Tile tile={p.lastDiscard} size="sm" /> : "—"}
-          {returnHere && <div style={{ font: "9px Georgia,serif", color: "#f2c14e" }}>↩ buraya geri koy</div>}
-          {takeHere && <div style={{ font: "9px Georgia,serif", color: "#f2c14e" }}>↑ ıstakaya sürükle (al)</div>}
-        </div>
+          background: "linear-gradient(#d6ab63,#9a7338)", color: "#231a0c",
+          display: "flex", alignItems: "center", justifyContent: "center", font: "700 13px Inter,sans-serif",
+          boxShadow: active ? `0 0 0 3px ${T.brass}, 0 0 14px ${T.brass}` : "0 2px 6px rgba(0,0,0,.45)",
+        }}>{nick(seat).slice(0, 2).toUpperCase()}</div>
+        <div style={{ font: "600 12px Inter,sans-serif" }}>{nick(seat)}{active ? " ▶" : ""}</div>
+        {p?.opened && (
+          <div style={{ display: "flex", gap: 2, justifyContent: "center", marginTop: 3 }}
+            title={p.openMode === "pairs" ? "Bu kadar çiftle açtı" : "Bu puanla açtı"}>
+            {miniDigits(p.openMode === "pairs" ? p.pairCount : p.openScore)}
+          </div>
+        )}
       </div>
     );
   };
 
-  const opponents = view.players.filter((p) => p.seat !== view.you).map((p) => p.seat);
+  // A discard pile pinned at a table corner. Each player discards toward the next
+  // player, so: topSeat→top-left, rightSeat→top-right, leftSeat→bottom-left (the
+  // floor I draw from), mine→bottom-right. `seat === null` is my own pile.
+  const discardCorner = (pos: CSSProperties, seat: number | null): JSX.Element => {
+    const mine = seat === null;
+    const isFloor = seat === leftSeat; // I draw from / return to the left player's pile
+    const p = seat !== null ? view.players.find((x) => x.seat === seat) : null;
+    const tile = mine ? myLastDiscard : (p?.lastDiscard ?? null);
+    const dropDiscard = mine && canAct;
+    const takeHere = isFloor && canDraw && tile !== null && view.pendingFloorTile === null;
+    const returnHere = isFloor && canReturn;
+    return (
+      <div
+        {...(mine ? { "data-testid": "my-discard" } : {})}
+        onDragOver={dropDiscard || returnHere ? (e) => e.preventDefault() : undefined}
+        onDrop={dropDiscard ? (e) => { e.preventDefault(); dropToDiscard(); }
+          : returnHere ? (e) => { e.preventDefault(); returnFloor(); } : undefined}
+        style={{
+          position: "absolute", ...pos, zIndex: 5, padding: 2, borderRadius: 8,
+          width: 44, height: 59, boxSizing: "border-box",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          background: "rgba(0,0,0,.18)", boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)",
+        }}>
+        {takeHere && tile
+          ? <span onDragEnd={clearDrag} style={{ display: "inline-block" }}>
+              <Tile tile={tile} size="md" draggable
+                onDragStart={(e) => { e.dataTransfer.effectAllowed = "copy"; setDrag({ kind: "floor", tile }); }} />
+            </span>
+          : tile ? <Tile tile={tile} size="md" />
+          : null}
+      </div>
+    );
+  };
+
+  // --- value-aligned meld boards (fixed 13-row grids, like the mockup) -------
+  // The series board is two value-halves of 13 columns (26 total): melds align to
+  // their value column 1-13 in the left half; when the 13 rows fill up they spill
+  // into the right half, separated by a white striped divider.
+  const SROWS = 13, SHALF = 13, SCOLS = SHALF * 2, PCOLS = 6, CW = 21, CH = 28;
+  const gridBg: CSSProperties = {
+    background:
+      "linear-gradient(rgba(0,0,0,.10),rgba(0,0,0,.10))," +
+      `repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px ${CW}px),` +
+      `repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px ${CH}px)`,
+    borderRadius: 8, padding: 4, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.05)",
+  };
+  const boardTile = (t: OkeyTile, r: number, c: number, key: string): JSX.Element => (
+    <div key={key} style={{ gridRow: r, gridColumn: c, width: CW, height: CH, fontSize: 13 }}>
+      <Tile tile={t} fill />
+    </div>
+  );
+  // Value-aligned start column within one 13-wide half (1..13).
+  const meldStartCol = (kind: "run" | "set" | "pair", ordered: OkeyTile[]): number => {
+    let raw = 1;
+    if (kind === "run") {
+      for (let i = 0; i < ordered.length; i++) { const nv = naturalValue(ordered[i]!, okey); if (nv) { raw = nv.value - i; break; } }
+    } else {
+      const nv = ordered.map((t) => naturalValue(t, okey)).find((x) => x !== null);
+      raw = nv ? nv.value : 1;
+    }
+    return Math.max(1, Math.min(raw, SHALF - ordered.length + 1));
+  };
+
+  const runs = view.tableMelds.filter((m) => m.kind !== "pair");
+  const pairs = view.tableMelds.filter((m) => m.kind === "pair");
+
+  // Runs/pairs grouped by their owner, with a blank row between owners so you can
+  // see at a glance which melds each player put down.
+  const seriesBoard = (): JSX.Element => {
+    const cells: JSX.Element[] = [];
+    const strips: JSX.Element[] = [];
+    const ordered = [...runs].sort((a, b) => a.owner - b.owner);
+    let row = 0;
+    let prevOwner: number | null = null;
+    for (const m of ordered) {
+      if (prevOwner !== null && m.owner !== prevOwner) row++; // blank gap row between owners
+      if (row >= SROWS * 2) break;
+      const half = row < SROWS ? 0 : 1; // first half fills up, then overflow right
+      const gridRow = (row % SROWS) + 1;
+      const tiles = orderMeldForDisplay(m.tiles, okey);
+      const start = meldStartCol(m.kind, tiles) + half * SHALF;
+      const target = canAct && opened;
+      strips.push(
+        <div key={`s${m.id}`}
+          onDragOver={(e) => { if (target) e.preventDefault(); }}
+          onDrop={(e) => { e.preventDefault(); dropToMeld(m.id); }}
+          style={{ gridRow, gridColumn: half === 0 ? `1 / ${SHALF + 1}` : `${SHALF + 1} / -1` }} />,
+      );
+      tiles.forEach((t, i) => cells.push(boardTile(t, gridRow, start + i, `${m.id}-${i}`)));
+      const swap = target ? okeySwapTile(m.tiles, m.kind, view.yourHand, okey) : null;
+      if (swap) cells.push(
+        <button key={`sw${m.id}`} onClick={() => onMove({ kind: "swapOkey", meldId: m.id, tile: swap })}
+          title="Okeyi al" style={{ gridRow, gridColumn: Math.min(SCOLS, start + tiles.length), font: "10px Inter", cursor: "pointer", borderRadius: 5 }}>↔</button>,
+      );
+      prevOwner = m.owner;
+      row++;
+    }
+    return (
+      <div style={{ ...gridBg, position: "relative", display: "grid", gridTemplateColumns: `repeat(${SCOLS}, ${CW}px)`, gridTemplateRows: `repeat(${SROWS}, ${CH}px)` }}>
+        {strips}{cells}
+        {/* white striped divider between the two value-halves */}
+        <div style={{
+          position: "absolute", top: 4, bottom: 4, left: 4 + SHALF * CW - 1, width: 3, borderRadius: 2, pointerEvents: "none",
+          background: "repeating-linear-gradient(45deg, rgba(255,255,255,.6) 0 2px, transparent 2px 5px)",
+        }} />
+      </div>
+    );
+  };
+
+  const pairsBoard = (): JSX.Element => {
+    const cells: JSX.Element[] = [];
+    const ordered = [...pairs].sort((a, b) => a.owner - b.owner);
+    let row = 0, col = 0;
+    let prevOwner: number | null = null;
+    for (const m of ordered) {
+      if (prevOwner !== null && m.owner !== prevOwner) { row += col > 0 ? 2 : 1; col = 0; } // gap + fresh row per owner
+      else if (col >= 3) { row++; col = 0; }
+      if (row >= SROWS) break;
+      const c = col * 2 + 1;
+      orderMeldForDisplay(m.tiles, okey).forEach((t, i) => cells.push(boardTile(t, row + 1, c + i, `${m.id}-${i}`)));
+      col++;
+      prevOwner = m.owner;
+    }
+    return (
+      <div style={{ ...gridBg, display: "grid", gridTemplateColumns: `repeat(${PCOLS}, ${CW}px)`, gridTemplateRows: `repeat(${SROWS}, ${CH}px)` }}>
+        {cells}
+      </div>
+    );
+  };
 
   return (
-    <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontFamily: "Georgia, serif" }}>
-      {/* keyframes for the "drawn tile revealed" flip (no CSS files in this app) */}
-      <style>{`@keyframes okeyDraw {
-        0%   { transform: perspective(440px) rotateY(88deg) scale(.82); filter: brightness(2); }
-        55%  { transform: perspective(440px) rotateY(0deg) scale(1.12); filter: brightness(1.35); }
-        100% { transform: perspective(440px) rotateY(0deg) scale(1); filter: brightness(1); }
-      }`}</style>
-      <div style={{ flex: 1, minWidth: 420, maxWidth: 760 }}>
+    <div className="okey-stage" style={{ maxWidth: 1320, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 230px", gap: 16, alignItems: "start", color: T.onFelt, fontFamily: "Inter, system-ui, sans-serif" }}>
+      <style>{`@media (max-width: 1180px){ .okey-stage{ grid-template-columns: 1fr !important; } }`}</style>
+
+      {/* ---------------- left: table + rack ---------------- */}
+      <div style={{ minWidth: 0 }}>
         <div style={FELT}>
-          {/* opponents */}
-          <div style={{ display: "flex", justifyContent: "space-around", marginBottom: 10 }}>
-            {opponents.map((s) => <div key={s}>{seatBox(s)}</div>)}
-          </div>
+          {/* faint felt weave */}
+          <div style={{
+            position: "absolute", inset: 0, borderRadius: 22, opacity: 0.06, pointerEvents: "none",
+            backgroundImage: "repeating-linear-gradient(45deg,#fff 0 1px,transparent 1px 4px),repeating-linear-gradient(-45deg,#fff 0 1px,transparent 1px 4px)",
+          }} />
 
-          {/* center: deste + gösterge */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 18, margin: "6px 0 12px" }}>
-            <div style={{ textAlign: "center" }}>
-              <div
-                data-testid="draw-pile"
-                draggable={canDraw && view.drawPileCount > 0}
-                onDragStart={canDraw && view.drawPileCount > 0
-                  ? (e) => { e.dataTransfer.effectAllowed = "copy"; setDrag({ kind: "deck" }); }
-                  : undefined}
-                onDragEnd={clearDrag}
-                style={{
-                  position: "relative", width: 38, height: 54, borderRadius: 6, margin: "0 auto",
-                  background: "#f4ecd8", boxShadow: "2px 2px 0 #e0d8c2, 4px 4px 0 #d2c9b0, 6px 7px 12px rgba(0,0,0,.4)",
-                  cursor: canDraw && view.drawPileCount > 0 ? "grab" : "default",
-                  outline: canDraw && view.drawPileCount > 0 ? "2px solid #f2c14e" : "none",
-                }}>
-                <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", font: "800 18px Georgia,serif", color: "rgba(40,40,40,.4)" }}>{view.drawPileCount}</span>
-              </div>
-              <div style={LABEL}>deste{canDraw && view.drawPileCount > 0 ? " · çek ↓" : ""}</div>
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <Tile tile={view.indicator} />
-              <div style={LABEL}>gösterge · okey {okey.kind === "numbered" ? `${okey.value}` : ""}</div>
-            </div>
-            {/* my discard pile — drag a tile here to discard */}
-            <div style={{ textAlign: "center" }}>
-              <div
-                data-testid="my-discard"
-                onDragOver={canAct ? (e) => e.preventDefault() : undefined}
-                onDrop={canAct ? (e) => { e.preventDefault(); dropToDiscard(); } : undefined}
-                style={{
-                  width: 40, height: 56, borderRadius: 6, margin: "0 auto",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  border: `2px dashed ${canAct && drag?.kind === "slot" ? "#f0d27a" : "rgba(255,255,255,.3)"}`,
-                  background: canAct && drag?.kind === "slot" ? "rgba(240,210,122,.2)" : "rgba(0,0,0,.18)",
-                }}>
-                {myLastDiscard ? <Tile tile={myLastDiscard} size="sm" /> : <span style={{ color: "#9fbfa9", font: "10px Georgia,serif" }}>at</span>}
-              </div>
-              <div style={LABEL}>attıkların{canAct ? " · buraya at" : ""}</div>
-            </div>
-          </div>
+          {/* discards pinned at the 4 corners (each player throws toward the next) */}
+          {discardCorner({ top: 14, left: 16 }, topSeat)}
+          {discardCorner({ top: 14, right: 16 }, rightSeat)}
+          {discardCorner({ bottom: 14, left: 16 }, leftSeat)}
+          {discardCorner({ bottom: 14, right: 16 }, null)}
 
-          {/* table melds */}
-          <div style={{ minHeight: 64, background: "rgba(0,0,0,.16)", borderRadius: 8, padding: 8 }}>
-            <div style={{ ...LABEL, marginBottom: 4, opacity: 0.8 }}>Masadaki perler {opened ? "· taş sürükleyip işle" : ""}</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {view.tableMelds.length === 0
-                ? <em style={{ color: "#9fbfa9" }}>henüz yok</em>
-                : view.tableMelds.map((m) => {
-                  const target = m.kind !== "pair" && canAct && opened;
-                  const swapTile = canAct && opened ? okeySwapTile(m.tiles, m.kind, view.yourHand, okey) : null;
-                  return (
-                    <div key={m.id}
-                      onDragOver={(e) => { if (target) e.preventDefault(); }}
-                      onDrop={(e) => { e.preventDefault(); dropToMeld(m.id); }}
-                      style={{
-                        border: `1px dashed ${target && drag ? "#5fd08a" : "rgba(255,255,255,.25)"}`, borderRadius: 6, padding: 4,
-                        background: target && drag ? "rgba(95,208,138,.15)" : "transparent",
-                      }}>
-                      <div style={{ color: "#bfe0cd", font: "10px Georgia,serif" }}>{m.kind === "pair" ? "çift" : m.kind} · {nick(m.owner)}</div>
-                      <div style={{ display: "flex" }}>{orderMeldForDisplay(m.tiles, okey).map((t, i) => <Tile key={i} tile={t} size="sm" />)}</div>
-                      {swapTile && (
-                        <button
-                          onClick={() => onMove({ kind: "swapOkey", meldId: m.id, tile: swapTile })}
-                          style={{ marginTop: 3, font: "10px Georgia,serif", cursor: "pointer" }}
-                          title="Elindeki gerçek taşı koyup okeyi al">
-                          okeyi al
-                        </button>
-                      )}
-                    </div>
-                  );
-                })}
+          {/* tile I just took from the left player's pile — shown above it with a
+              "Geri koy" caption; click (or drag onto a slot) to put it back */}
+          {canReturn && view.pendingFloorTile && (
+            <div style={{
+              position: "absolute", bottom: 80, left: 12, zIndex: 6,
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+              background: "rgba(0,0,0,.4)", borderRadius: 9, padding: 5, border: `1px solid ${T.brass}`,
+            }}>
+              <Tile tile={view.pendingFloorTile} size="sm" />
+              <button onClick={returnFloor} style={{
+                font: "700 11px Inter,sans-serif", cursor: "pointer", color: "#1c1c1c",
+                background: `linear-gradient(160deg,${T.brassSoft},${T.brass})`, border: "none", borderRadius: 6, padding: "3px 9px",
+              }}>Geri koy</button>
             </div>
+          )}
+
+          {/* top player */}
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>{seatChip(topSeat)}</div>
+
+          {/* left seat | series · centre(gösterge/deste/mode) · pairs | right seat */}
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "center" }}>
+            {seatChip(leftSeat)}
+
+            <div style={{
+              display: "grid", gridTemplateColumns: "auto auto auto auto auto", gap: 8, alignItems: "center", justifyContent: "center",
+              background: "rgba(0,0,0,.16)", borderRadius: 14, padding: 8, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.04)",
+            }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {openNeed(view.meldOpenNeed, "right")}
+                <span style={{ font: "9px Inter,sans-serif", color: T.muted }}>seri</span>
+              </div>
+              {seriesBoard()}
+              {/* centre: gösterge / deste / oyun türleri */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 9, alignItems: "center" }}>
+                <Tile tile={view.indicator} />
+                <div
+                  data-testid="draw-pile"
+                  draggable={canDraw && view.drawPileCount > 0}
+                  onDragStart={canDraw && view.drawPileCount > 0
+                    ? (e) => { e.dataTransfer.effectAllowed = "copy"; setDrag({ kind: "deck" }); }
+                    : undefined}
+                  onDragEnd={clearDrag}
+                  style={{
+                    position: "relative", width: 40, height: 55, borderRadius: 7,
+                    background: "linear-gradient(180deg,#fdfaf1,#ece1c9)",
+                    boxShadow: "2px 2px 0 rgba(0,0,0,.18), 4px 4px 0 rgba(0,0,0,.12), 6px 8px 14px rgba(0,0,0,.45)",
+                    cursor: canDraw && view.drawPileCount > 0 ? "grab" : "default",
+                    outline: canDraw && view.drawPileCount > 0 ? `2px solid ${T.brass}` : "none",
+                    display: "grid", placeItems: "center", font: '800 17px "Rubik",sans-serif', color: "rgba(40,40,40,.5)",
+                  }}>{view.drawPileCount}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "center" }}>
+                  <span style={CHIP(view.config.pairing === "esli")}>{view.config.pairing === "esli" ? "Eşli" : "Eşsiz"}</span>
+                  <span style={CHIP(view.config.escalation === "katlamali")}>{view.config.escalation === "katlamali" ? "Katlamalı" : "Düz"}</span>
+                  {assist === "destekli" && <span style={CHIP(false)}>Destekli</span>}
+                </div>
+              </div>
+              {pairsBoard()}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                {openNeed(view.pairOpenNeed, "left")}
+                <span style={{ font: "9px Inter,sans-serif", color: T.muted }}>çift</span>
+              </div>
+            </div>
+
+            {seatChip(rightSeat)}
           </div>
         </div>
 
-        {/* turn status */}
-        <p style={{ margin: "10px 0 6px" }}>
-          Sıra: <strong>{nick(view.turn)}</strong> {yourTurn ? "(sende)" : ""} · {view.phase === "draw" ? "çekme" : "oynama"}
-          {table.match.status === "finished" && onLeave && <> · <button onClick={onLeave}>Lobiye Dön</button></>}
-        </p>
-
-        {/* draw: drag the deck or the left player's discard onto a rack slot */}
-        {canDraw && (
-          <div style={{
-            margin: "8px 0", padding: "6px 10px", borderRadius: 8,
-            background: "rgba(242,193,78,.14)", border: "1px dashed rgba(242,193,78,.55)",
-            color: "#e7e0cf", font: "12px Georgia,serif",
-          }}>
-            Çekmek için <strong>desteyi</strong> ya da soldaki oyuncunun attığı <strong>taşı</strong> ıstakadaki boş bir yuvaya sürükle.
-          </div>
+        {table.match.status === "finished" && onLeave && (
+          <p style={{ margin: "10px 0 6px" }}><button onClick={onLeave}>Lobiye Dön</button></p>
         )}
 
-        {/* my rack */}
-        <div style={{ background: "linear-gradient(#b58a52,#8a6532)", borderRadius: 12, padding: 10, border: "3px solid #f2c14e", boxShadow: "inset 0 2px 4px rgba(255,255,255,.25)", marginTop: 8 }}>
-          <div style={{ ...LABEL, marginBottom: 6, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span>Senin elin ({view.yourHand.length}) — taşları boşluklarla grupla; yan yana 3+ seri/grup, 2 çift</span>
-            {!opened ? (
-              <span style={{
-                font: "700 13px Georgia,serif", padding: "2px 8px", borderRadius: 6,
-                background: meldTotal >= openThreshold ? "#1f7a3a" : "#3a2a12", color: "#ffe9b8",
-              }}>
-                Perler: {meldTotal} puan · açış {openThreshold}
-              </span>
-            ) : (
-              <span style={{ font: "700 13px Georgia,serif", padding: "2px 8px", borderRadius: 6, background: "#3a2a12", color: "#ffe9b8" }}>
-                Elde kalan: {heldPoints.sum} puan{heldPoints.wild ? " (+101 okey)" : ""}
-              </span>
-            )}
-          </div>
+        {/* perler toplamı badge above the rack */}
+        <div style={{ display: "flex", justifyContent: "flex-end", maxWidth: 1000, margin: "10px auto 0" }}>
+          <span style={{
+            font: '700 21px "Rubik",sans-serif', color: "#1c1c1c",
+            background: `linear-gradient(160deg,${T.brassSoft},${T.brass})`, padding: "5px 18px", borderRadius: 999,
+            boxShadow: "0 3px 12px rgba(217,164,65,.45)",
+          }}>{meldTotal}</span>
+        </div>
+
+        {/* rack flanked by arrange helpers */}
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "stretch", marginTop: 6 }}>
+          {assist === "destekli" && (!opened || openMode === "pairs" || pairsOpenerExists)
+            ? <button style={HBTN} onClick={arrangeCift} title="En iyi çiftlere dizer">Çift Diz</button>
+            : <span />}
           <SlottedRack
             slots={slots}
             okey={okey}
@@ -297,96 +415,62 @@ export function OkeyTable({ table, onMove, onLeave }: { table: OkeyTableView; on
             selected={sel}
             dragFrom={drag?.kind === "slot" ? drag.from : null}
             dragActive={drag !== null}
-            highlightEmpty={canDraw && (drag?.kind === "deck" || drag?.kind === "floor")}
-            revealSlot={revealSlot}
-            slotKind={slotKind}
-            floorSig={floorSig}
             onSelect={(i) => setSel((p) => (p === i ? null : i))}
             onDragStartSlot={(from, tile) => setDrag({ kind: "slot", from, tile })}
             onDropToSlot={dropToSlot}
             onDragEnd={clearDrag}
           />
+          {assist === "destekli"
+            ? <button style={HBTN} onClick={arrangeSeri} title="En yüksek puanlı serilere/gruplara dizer">Seri Diz</button>
+            : <span />}
         </div>
 
-        {/* floor tile taken: use it in a meld, or put it back and draw from the deck */}
-        {canAct && view.pendingFloorTile && (
-          <div style={{
-            display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 10,
-            border: "2px solid #f2c14e", borderRadius: 8, padding: 10, background: "#fff8e6",
-          }}>
-            <span style={{ font: "13px Georgia,serif", color: "#7a5c10" }}>
-              Yerden bir taş aldın (sarı çerçeveli). Bir perde kullan, ya da geri koy.
-              <br />Not: kullanmadan el açarsan <strong>+101 ceza</strong>.
-            </span>
-            <span style={{ flex: 1 }} />
-            <button onClick={returnFloor} style={{ fontWeight: 700 }}>↩ Geri koy + desteden çek</button>
-            <div
-              onDragOver={(e) => { e.preventDefault(); }}
-              onDrop={(e) => { e.preventDefault(); returnFloor(); }}
-              style={{
-                minWidth: 150, padding: "8px 12px", borderRadius: 8, textAlign: "center",
-                border: `2px dashed ${drag ? "#caa42a" : "#d8c184"}`,
-                background: drag ? "#fbefc4" : "#fffdf4", color: "#7a5c10", fontWeight: 700,
-              }}>
-              ↩ taşı buraya sürükle (geri koy)
-            </div>
-          </div>
-        )}
-
-        {/* action bar */}
-        {canAct && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
-            {!opened && (
-              <button disabled={meldTotal < openThreshold} onClick={openWithMelds} title="Rafta kurduğun serileri/grupları aç">
-                Aç ({meldTotal}/{openThreshold})
-              </button>
-            )}
-            {!opened && (
-              <button disabled={validPairGroups.length < minPairs} onClick={openWithPairs} title="Rafta kurduğun çiftleri aç">
-                Çiftlerle Aç ({validPairGroups.length}/{minPairs})
-              </button>
-            )}
-            {opened && openMode === "melds" && (
-              <button disabled={validMeldGroups.length === 0} onClick={layMelds}>Perleri Diz ({validMeldGroups.length})</button>
-            )}
-            {opened && openMode === "melds" && pairsOpenerExists && (
-              <button disabled={validPairGroups.length === 0} onClick={layPairs} title="Çift açan oyuncu olduğu için kalan çiftlerini eritebilirsin">
-                Çiftleri Erit ({validPairGroups.length})
-              </button>
-            )}
-            {opened && openMode === "pairs" && (
-              <button disabled={validPairGroups.length === 0} onClick={layPairs}>Çiftleri Diz ({validPairGroups.length})</button>
-            )}
-
-            {/* assist-only helpers: rearrange the rack (do not open) */}
-            {assist === "destekli" && (
-              <button onClick={arrangeSeri} title="Istakadaki taşları en yüksek puanlı serilere/gruplara dizer">
-                Seri Diz
-              </button>
-            )}
-            {assist === "destekli" && !opened && (
-              <button onClick={arrangeCift} title="Istakadaki taşları en iyi çiftlere dizer">
-                Çift Diz
-              </button>
-            )}
-
-            <span style={{ flex: 1 }} />
-
-            {/* discard: drag a rack tile onto the zone */}
-            <div
-              onDragOver={(e) => { e.preventDefault(); }}
-              onDrop={(e) => { e.preventDefault(); dropToDiscard(); }}
-              style={{
-                minWidth: 160, padding: "8px 12px", borderRadius: 8, textAlign: "center",
-                border: `2px dashed ${drag?.kind === "slot" ? "#c33" : "#ccc"}`,
-                background: drag?.kind === "slot" ? "#fdecec" : "#fafafa", color: "#a00", fontWeight: 700,
-              }}>
-              🗑 atmak için taşı buraya sürükle
-            </div>
-          </div>
-        )}
       </div>
-      <Scoreboard match={table.match} seating={seating} />
+
+      {/* ---------------- right: scoreboard + action panel ---------------- */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={PANEL}>
+          <div style={{ font: "700 13px Inter,sans-serif", letterSpacing: 1.2, textTransform: "uppercase", color: T.muted }}>Skor</div>
+          <div style={{ font: "12px Inter,sans-serif", color: T.muted, marginBottom: 12 }}>El {table.match.handsPlayed}/{table.match.targetHands}</div>
+          {[...seating].sort((a, b) => (table.match.seatTotals[a.seat] ?? 0) - (table.match.seatTotals[b.seat] ?? 0)).map((s) => {
+            const meRow = s.seat === view.you;
+            return (
+              <div key={s.seat} style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "9px 8px", borderRadius: 10, marginTop: 2,
+                background: meRow ? "linear-gradient(90deg, rgba(217,164,65,.22), transparent)" : "transparent",
+              }}>
+                <span style={{
+                  width: 28, height: 28, borderRadius: "50%", display: "grid", placeItems: "center",
+                  background: `linear-gradient(145deg,${T.brassSoft},${T.brass})`, color: "#1d1d1d", font: "700 12px Inter,sans-serif",
+                }}>{s.nickname.slice(0, 2).toUpperCase()}</span>
+                <span style={{ flex: 1, font: "600 14px Inter,sans-serif" }}>{s.nickname}{s.seat === view.turn ? " ▶" : ""}</span>
+                <span style={{ font: '700 16px "Rubik",sans-serif', color: meRow ? T.brass : T.onFelt }}>{table.match.seatTotals[s.seat] ?? 0}</span>
+              </div>
+            );
+          })}
+          {table.match.status === "finished" && table.match.winner && (
+            <div style={{ marginTop: 10, font: "700 13px Inter,sans-serif", color: "#3fae6b" }}>
+              Kazanan: {table.match.winner.kind === "seat" ? nick(table.match.winner.seat) : `Takım ${table.match.winner.team}`}
+            </div>
+          )}
+        </div>
+
+        {/* action panel — the four fixed actions */}
+        <div style={{ ...PANEL, display: "flex", flexDirection: "column", gap: 9 }}>
+          <button style={abtn(canSeri ? "primary" : "plain", !canSeri)} disabled={!canSeri} onClick={seriAc} title="Seri/grup aç ya da diz">
+            <span style={ICO}>▦</span> Seri Aç <span style={{ marginLeft: "auto", font: '12px "Rubik"', opacity: 0.75 }}>{opened ? validMeldGroups.length : `${meldTotal}/${openThreshold}`}</span>
+          </button>
+          <button style={abtn("plain", !canCift)} disabled={!canCift} onClick={ciftAc} title="Çift aç ya da diz">
+            <span style={ICO}>◫</span> Çift Aç <span style={{ marginLeft: "auto", font: '12px "Rubik"', opacity: 0.75 }}>{opened ? validPairGroups.length : `${validPairGroups.length}/${minPairs}`}</span>
+          </button>
+          <button style={abtn("plain", !view.canUndoTurn)} disabled={!view.canUndoTurn} onClick={undoTurn} title="Bu turda yaptıklarını geri al (atmadan önce)">
+            <span style={ICO}>↺</span> Geri Topla
+          </button>
+          <button style={abtn("plain", !(canAct && opened))} disabled={!(canAct && opened)} onClick={autoProcess} title="İşlenebilen taşları masaya otomatik ekle">
+            <span style={ICO}>⤵</span> Taşları İşle
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

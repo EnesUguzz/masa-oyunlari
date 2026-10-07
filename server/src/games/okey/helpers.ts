@@ -1,7 +1,7 @@
 import type { OkeyTile, NumberedTile } from "./tile.js";
 import { isNumbered, tilesEqual } from "./tile.js";
 import { isValidMeld } from "./meld.js";
-import type { OkeyGameState, PlayerHandState, HandOutcome, TableMeld } from "./game-state.js";
+import type { OkeyGameState, PlayerHandState, HandOutcome, TableMeld, TurnSnapshot } from "./game-state.js";
 import { WrongPhaseError, TileNotInHandError } from "./errors.js";
 
 /**
@@ -46,9 +46,57 @@ export function cloneState(s: OkeyGameState): OkeyGameState {
     highestOpenPairs: s.highestOpenPairs,
     feedingEvents: s.feedingEvents.map((e) => ({ ...e })),
     meldSeq: s.meldSeq,
+    actCheckpoint: s.actCheckpoint ? { turnSeq: s.actCheckpoint.turnSeq, snap: cloneSnapshot(s.actCheckpoint.snap) } : null,
     status: s.status,
     outcome: s.outcome ? cloneOutcome(s.outcome) : null,
   };
+}
+
+function cloneSnapshot(snap: TurnSnapshot): TurnSnapshot {
+  return {
+    players: snap.players.map((p) => ({ ...p, hand: cloneTiles(p.hand) })),
+    tableMelds: snap.tableMelds.map((m) => ({ ...m, tiles: cloneTiles(m.tiles) })),
+    highestOpenScore: snap.highestOpenScore,
+    highestOpenPairs: snap.highestOpenPairs,
+    meldSeq: snap.meldSeq,
+    pendingFloorTile: snap.pendingFloorTile ? cloneTile(snap.pendingFloorTile) : null,
+    feedingEvents: snap.feedingEvents.map((e) => ({ ...e })),
+  };
+}
+
+/**
+ * Record the per-turn undo checkpoint once, before the turn's first opening or
+ * processing action. Idempotent within a turn (tagged by turnSeq).
+ */
+export function checkpointTurn(s: OkeyGameState): void {
+  if (!s.actCheckpoint || s.actCheckpoint.turnSeq !== s.turnSeq) {
+    s.actCheckpoint = {
+      turnSeq: s.turnSeq,
+      snap: {
+        players: s.players.map((p) => ({ ...p, hand: cloneTiles(p.hand) })),
+        tableMelds: s.tableMelds.map((m) => ({ ...m, tiles: cloneTiles(m.tiles) })),
+        highestOpenScore: s.highestOpenScore,
+        highestOpenPairs: s.highestOpenPairs,
+        meldSeq: s.meldSeq,
+        pendingFloorTile: s.pendingFloorTile ? cloneTile(s.pendingFloorTile) : null,
+        feedingEvents: s.feedingEvents.map((e) => ({ ...e })),
+      },
+    };
+  }
+}
+
+/** Restore this turn's checkpoint (undo opens/processes). Returns false if none. */
+export function restoreTurnCheckpoint(s: OkeyGameState): boolean {
+  if (!s.actCheckpoint || s.actCheckpoint.turnSeq !== s.turnSeq) return false;
+  const snap = cloneSnapshot(s.actCheckpoint.snap);
+  s.players = snap.players;
+  s.tableMelds = snap.tableMelds;
+  s.highestOpenScore = snap.highestOpenScore;
+  s.highestOpenPairs = snap.highestOpenPairs;
+  s.meldSeq = snap.meldSeq;
+  s.pendingFloorTile = snap.pendingFloorTile;
+  s.feedingEvents = snap.feedingEvents;
+  return true;
 }
 
 export function current(s: OkeyGameState): PlayerHandState {
@@ -100,9 +148,9 @@ function partnerSeat(s: OkeyGameState, seat: number): number | null {
   return null;
 }
 
-export function meldThreshold(s: OkeyGameState): number {
+export function meldThreshold(s: OkeyGameState, seat: number = s.turn): number {
   if (s.config.escalation === "katlamasiz") return s.config.openThreshold;
-  const me = s.turn;
+  const me = seat;
   const excludePartner = s.config.pairing === "esli" && s.config.partnerEscalation === "ese-katlamasiz";
   const partner = excludePartner ? partnerSeat(s, me) : null;
   let best: number | null = null;
@@ -113,9 +161,9 @@ export function meldThreshold(s: OkeyGameState): number {
   return best === null ? s.config.openThreshold : best + 1;
 }
 
-export function pairThreshold(s: OkeyGameState): number {
+export function pairThreshold(s: OkeyGameState, seat: number = s.turn): number {
   if (s.config.escalation === "katlamasiz") return s.config.minPairs;
-  const me = s.turn;
+  const me = seat;
   const excludePartner = s.config.pairing === "esli" && s.config.partnerEscalation === "ese-katlamasiz";
   const partner = excludePartner ? partnerSeat(s, me) : null;
   let best: number | null = null;

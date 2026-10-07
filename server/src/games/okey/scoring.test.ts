@@ -63,10 +63,15 @@ describe("scoreHand (essiz)", () => {
     expect(scoreHand(s).perSeat[1]).toBe(119);
   });
 
-  it("deck exhaustion: everyone 202", () => {
-    const players = [player(0, [numbered("red", 1)], true), player(1, [], false), player(2, [], false), player(3, [], false)];
+  it("deck exhaustion: opened players score their leftover tiles, non-openers take 202", () => {
+    const players = [
+      player(0, [numbered("red", 1), numbered("blue", 9)], true), // opened: 1+9 = 10
+      player(1, [numbered("black", 5), okey], true), // opened + holds okey: 5 + 101 = 106
+      player(2, [numbered("red", 7)], false), // never opened: flat 202
+      player(3, [], false), // never opened: flat 202
+    ];
     const s = finished(players, outcome({ finisherSeat: null, finishType: null, deckExhausted: true }));
-    expect(scoreHand(s).perSeat).toEqual([202, 202, 202, 202]);
+    expect(scoreHand(s).perSeat).toEqual([10, 106, 202, 202]);
   });
 
   it("cezali feeding: feeder charged tileValue x10 (melds) / x20 (pairs)", () => {

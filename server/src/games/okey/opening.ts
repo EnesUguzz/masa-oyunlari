@@ -10,6 +10,7 @@ import type { OkeyGameState } from "./game-state.js";
 import { AlreadyOpenedError, OpeningThresholdNotMetError, NotOpenedError, ModeLockedError } from "./errors.js";
 import {
   current, requirePhase, removeTilesFromHand, consumeFloorIfLaid, recordFeeding, meldThreshold, pairThreshold,
+  checkpointTurn, restoreTurnCheckpoint,
 } from "./helpers.js";
 import { decompose } from "./decompose.js";
 
@@ -26,6 +27,7 @@ const PAIRS_PROCESS_PER_TURN = 2;
 
 export function applyOpenMelds(s: OkeyGameState, melds: OkeyTile[][]): void {
   requirePhase(s, "act");
+  checkpointTurn(s);
   const me = current(s);
   if (me.opened) throw new AlreadyOpenedError();
   if (melds.length === 0) throw new InvalidMoveError("no melds provided");
@@ -81,6 +83,7 @@ export function validatePairsOpening(
 
 export function applyOpenPairs(s: OkeyGameState, pairs: OkeyTile[][]): void {
   requirePhase(s, "act");
+  checkpointTurn(s);
   const me = current(s);
   if (me.opened) throw new AlreadyOpenedError();
   if (!validatePairsOpening(pairs, s.okey, s.indicator)) {
@@ -111,6 +114,7 @@ export function applyOpenPairs(s: OkeyGameState, pairs: OkeyTile[][]): void {
 
 export function applyProcessToMeld(s: OkeyGameState, meldId: string, tiles: OkeyTile[]): void {
   requirePhase(s, "act");
+  checkpointTurn(s);
   const me = current(s);
   if (!me.opened) throw new NotOpenedError();
   if (tiles.length === 0) throw new InvalidMoveError("no tiles to process");
@@ -147,6 +151,7 @@ export function applyProcessToMeld(s: OkeyGameState, meldId: string, tiles: Okey
  */
 export function applyAutoOpen(s: OkeyGameState): void {
   requirePhase(s, "act");
+  checkpointTurn(s);
   const me = current(s);
 
   if (!me.opened) {
@@ -185,6 +190,7 @@ export function applyAutoOpen(s: OkeyGameState): void {
  */
 export function applySwapOkey(s: OkeyGameState, meldId: string, tile: OkeyTile): void {
   requirePhase(s, "act");
+  checkpointTurn(s);
   const me = current(s);
   if (!me.opened) throw new NotOpenedError();
   if (isWildcard(tile, s.okey)) throw new InvalidMoveError("cannot swap an okey in for an okey");
@@ -208,6 +214,7 @@ export function applySwapOkey(s: OkeyGameState, meldId: string, tile: OkeyTile):
 
 export function applyOpenNewMeld(s: OkeyGameState, tiles: OkeyTile[]): void {
   requirePhase(s, "act");
+  checkpointTurn(s);
   const me = current(s);
   if (!me.opened) throw new NotOpenedError();
   if (me.openMode === "pairs") {
@@ -233,4 +240,46 @@ export function applyOpenNewMeld(s: OkeyGameState, tiles: OkeyTile[]): void {
   removeTilesFromHand(me, tiles);
   consumeFloorIfLaid(s, tiles);
   s.tableMelds.push({ id: String(s.meldSeq++), owner: me.seat, kind: meldKind(tiles, s.okey), tiles });
+}
+
+/**
+ * "Taşları İşle" — auto-process: lay every hand tile that extends an existing
+ * table run/set onto it, keeping at least one tile to discard with. Never lays an
+ * okey (the player may want to keep it) and respects the pairs-opener limit of at
+ * most two processed tiles per turn.
+ */
+export function applyAutoProcess(s: OkeyGameState): void {
+  requirePhase(s, "act");
+  const me = current(s);
+  if (!me.opened) throw new NotOpenedError();
+  checkpointTurn(s);
+  let progressed = true;
+  while (progressed && me.hand.length > 1) {
+    progressed = false;
+    for (const meld of s.tableMelds) {
+      if (meld.kind === "pair") continue;
+      if (me.hand.length <= 1) break;
+      if (me.openMode === "pairs") {
+        const already = me.processTurnSeq === s.turnSeq ? (me.processedThisTurn ?? 0) : 0;
+        if (already >= PAIRS_PROCESS_PER_TURN) return;
+      }
+      const idx = me.hand.findIndex((t) => !isWildcard(t, s.okey) && isValidMeld([...meld.tiles, t], s.okey));
+      if (idx === -1) continue;
+      applyProcessToMeld(s, meld.id, [me.hand[idx]!]);
+      progressed = true;
+      break; // the meld grew — re-scan from the top for newly possible extensions
+    }
+  }
+}
+
+/**
+ * "Geri Topla" — undo every opening/processing done this turn, back to the state
+ * right after the draw. Only valid before discarding (once the turn passes, the
+ * checkpoint no longer matches and there is nothing to undo).
+ */
+export function applyUndoTurn(s: OkeyGameState): void {
+  requirePhase(s, "act");
+  if (!restoreTurnCheckpoint(s)) {
+    throw new InvalidMoveError("bu turda geri toplanacak bir açma/işleme yok");
+  }
 }

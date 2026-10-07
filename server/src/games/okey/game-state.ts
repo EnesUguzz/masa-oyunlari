@@ -56,6 +56,23 @@ export interface HandOutcome {
 export type GamePhase = "draw" | "act";
 export type GameStatus = "playing" | "finished";
 
+/**
+ * A snapshot of everything an opening / processing action can change within a
+ * single turn. Taken lazily before the turn's first such action so the player can
+ * "Geri Topla" (undo) their opens/processes before discarding. The draw itself
+ * (hand contents from the deck/floor, draw pile, discards) is intentionally NOT
+ * part of this — only what happens after the draw, during the act phase.
+ */
+export interface TurnSnapshot {
+  players: PlayerHandState[];
+  tableMelds: TableMeld[];
+  highestOpenScore: number | null;
+  highestOpenPairs: number | null;
+  meldSeq: number;
+  pendingFloorTile: OkeyTile | null;
+  feedingEvents: FeedingEvent[];
+}
+
 export interface OkeyGameState {
   config: OkeyGameConfig;
   indicator: NumberedTile;
@@ -72,6 +89,9 @@ export interface OkeyGameState {
   highestOpenPairs: number | null;
   feedingEvents: FeedingEvent[];
   meldSeq: number;
+  // Lazy per-turn undo checkpoint (see TurnSnapshot). Tagged with the turnSeq it
+  // belongs to so it is automatically invalid once the turn advances.
+  actCheckpoint?: { turnSeq: number; snap: TurnSnapshot } | null;
   status: GameStatus;
   outcome: HandOutcome | null;
 }

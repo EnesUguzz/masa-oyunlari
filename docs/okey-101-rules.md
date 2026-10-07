@@ -158,8 +158,14 @@
   muaf; atma başına en fazla bir kez). 1b `discard()` anında biriktirir.
 - Yerden kural-dışı okey alma / 101-altı açma cezaları: **101** (sabit).
 
-**Deste tükenmesi:** bitiren olmadan deste biterse o el **herkes 202 ceza** alır
-(sabit, m yok) ve maç sonraki ele devam eder. **4-çift iptali yoktur** (yukarı bak);
+**Deste tükenmesi (GÜNCELLENDİ — kullanıcı kuralı 2026-06-24):** bitiren olmadan
+deste biterse (çarpan yok, m=1):
+- **Açmış oyuncu:** elinde kalan taşların **değer toplamı** ceza (+ elde okey
+  kalmışsa sabit **+101**). Yani açtıysan flat 202 değil, gerçekten elinde kalan
+  taşları yersin.
+- **Hiç açmamış oyuncu:** sabit **202** ceza.
+
+Maç sonraki ele devam eder. **4-çift iptali yoktur** (yukarı bak);
 1b'deki `void`/`isVoid` mantığı 1c'de motordan kaldırılır.
 
 ---

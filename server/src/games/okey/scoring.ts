@@ -40,10 +40,13 @@ export function scoreHand(state: OkeyGameState): HandScore {
   const base = [0, 0, 0, 0];
 
   if (outcome.deckExhausted) {
-    base[0] = 202;
-    base[1] = 202;
-    base[2] = 202;
-    base[3] = 202;
+    // No finisher (no multiplier). A player who opened is scored by the value of
+    // the tiles still in their hand (+101 if holding the okey); only players who
+    // never opened take the flat 202 (kullanıcı kuralı 2026-06-24).
+    for (const p of state.players) {
+      if (!p.opened) base[p.seat] = 202;
+      else base[p.seat] = tilesValue(p.hand, state.okey) + (hasWildcard(p.hand, state.okey) ? 101 : 0);
+    }
   } else {
     const finisher = outcome.finisherSeat;
     if (finisher === null || outcome.finishType === null) {

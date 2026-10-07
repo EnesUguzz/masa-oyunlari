@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Okey 101 — Masa Tasarım Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Rubik:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ---------- theme tokens ---------- */
+  :root, [data-theme="kiraathane"] {
+    --felt1:#15433a; --felt2:#0e2a25; --felt-edge:#0a201c;
+    --wood1:#8a6038; --wood2:#5a3d22; --wood-lip:#a9774a; --wood-dark:#3f2a17;
+    --brass:#d9a441; --brass-soft:#e8c578;
+    --tile:#f5eedd; --tile-edge:#d8cdb0;
+    --on-felt:#eae3d1; --muted:#9fb6ac;
+    --panel:#142420; --panel-2:#1b2f29; --panel-border:#2c4138; --on-panel:#eae3d1;
+    --btn:#1e342d; --btn-border:#334d43;
+  }
+  [data-theme="gece"] {
+    --felt1:#11211d; --felt2:#0a1714; --felt-edge:#060f0d;
+    --wood1:#56401f; --wood2:#2e2114; --wood-lip:#6b502a; --wood-dark:#1c1409;
+    --brass:#e8b54a; --brass-soft:#f0cd7e;
+    --tile:#f3ead6; --tile-edge:#cabf9f;
+    --on-felt:#e6ddc9; --muted:#8aa097;
+    --panel:#0e1715; --panel-2:#14201d; --panel-border:#243029; --on-panel:#e6ddc9;
+    --btn:#15211d; --btn-border:#2a3a33;
+  }
+  [data-theme="studio"] {
+    --felt1:#2f6b58; --felt2:#245446; --felt-edge:#1b4034;
+    --wood1:#c79966; --wood2:#9a6c3f; --wood-lip:#dbb083; --wood-dark:#7a5430;
+    --brass:#0e7c66; --brass-soft:#f2c14e;
+    --tile:#ffffff; --tile-edge:#e2e2e2;
+    --on-felt:#f3f7f4; --muted:#cfe2da;
+    --panel:#f6f8f6; --panel-2:#ffffff; --panel-border:#d8e2dc; --on-panel:#15302a;
+    --btn:#ffffff; --btn-border:#d4ded8;
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100vh; font-family:Inter,system-ui,sans-serif;
+    background:
+      radial-gradient(120% 90% at 50% -10%, #20302b 0%, #0c1714 60%, #070f0d 100%);
+    color:var(--on-felt); padding:18px;
+  }
+  .topbar {
+    max-width:1180px; margin:0 auto 16px; display:flex; align-items:center;
+    gap:14px; flex-wrap:wrap;
+  }
+  .topbar h1 {
+    font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:18px;
+    letter-spacing:.4px; margin:0; color:#e7e0cf;
+  }
+  .topbar .hint { color:#8aa097; font-size:13px; }
+  .themes { margin-left:auto; display:flex; gap:8px; background:#0e1715;
+    padding:5px; border-radius:12px; border:1px solid #233029; }
+  .themes button {
+    font-family:Inter,sans-serif; font-weight:600; font-size:13px; cursor:pointer;
+    color:#cbd8d1; background:transparent; border:0; padding:8px 14px; border-radius:8px;
+  }
+  .themes button.active { background:#d9a441; color:#1a1a1a; }
+
+  /* ---------- felt table ---------- */
+  .stage { max-width:1180px; margin:0 auto; display:grid;
+    grid-template-columns:1fr 300px; gap:16px; align-items:start; }
+  @media (max-width:980px){ .stage{ grid-template-columns:1fr; } }
+
+  .felt {
+    position:relative; border-radius:22px; padding:18px;
+    background:
+      radial-gradient(130% 100% at 50% 40%, var(--felt1), var(--felt2) 70%, var(--felt-edge) 100%);
+    box-shadow: inset 0 0 0 10px rgba(0,0,0,.18), inset 0 0 70px rgba(0,0,0,.45),
+                0 24px 60px rgba(0,0,0,.5);
+    border:1px solid rgba(255,255,255,.05);
+  }
+  /* faint felt weave */
+  .felt::before{ content:""; position:absolute; inset:0; border-radius:22px; opacity:.06;
+    background-image:repeating-linear-gradient(45deg,#fff 0 1px,transparent 1px 4px),
+                     repeating-linear-gradient(-45deg,#fff 0 1px,transparent 1px 4px);
+    pointer-events:none; }
+
+  /* player chips */
+  .seat { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .ava {
+    width:46px; height:46px; border-radius:50%; display:grid; place-items:center;
+    font-family:"Space Grotesk",sans-serif; font-weight:700; font-size:15px; color:#1d1d1d;
+    background:linear-gradient(145deg,var(--brass-soft),var(--brass));
+    box-shadow:0 3px 8px rgba(0,0,0,.45), inset 0 1px 1px rgba(255,255,255,.5);
+  }
+  .seat.active .ava{ box-shadow:0 0 0 3px var(--brass), 0 0 16px var(--brass); }
+  .seat .name{ font-size:12px; color:var(--on-felt); font-weight:600; }
+  .seat .cnt{ font-size:11px; color:var(--muted); }
+  /* opening score rendered as little red okey tiles (e.g. 135 → 1 3 5) */
+  .opened{ display:flex; gap:2px; margin-top:3px; justify-content:center; }
+  .minitile{ width:15px; height:21px; border-radius:3px; display:grid; place-items:center;
+    font-family:"Space Grotesk"; font-weight:700; font-size:12px; background:var(--tile);
+    color:#c2342b; border:1px solid var(--tile-edge);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.35); }
+
+  .row-top{ display:flex; justify-content:center; margin-bottom:10px; }
+  .row-mid{ display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; }
+  .side{ display:flex; flex-direction:column; align-items:center; gap:8px; }
+
+  /* boards */
+  .boards{ display:grid; grid-template-columns:auto 1fr auto auto auto; gap:14px; align-items:center;
+    background:rgba(0,0,0,.16); border-radius:14px; padding:12px;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04); }
+  .board-label{ font-family:"Space Grotesk",sans-serif; font-size:11px; letter-spacing:1.4px;
+    text-transform:uppercase; color:var(--muted); margin:0 0 6px 2px; }
+  /* opening-score indicator beside each meld board (how much was opened) */
+  .open-need{ display:flex; align-items:center; gap:6px; }
+  .open-need .need-num{ display:flex; gap:2px; }
+  .open-need .need-num .minitile{ width:18px; height:25px; font-size:14px; }
+  .open-need .need-arrow{ font-size:26px; font-weight:800; color:var(--brass); line-height:1; }
+
+  /* series board: 26 cols grid with faint cells */
+  .series, .pairs{ background:
+      linear-gradient(rgba(0,0,0,.10),rgba(0,0,0,.10)),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 22px),
+      repeating-linear-gradient(0deg,  rgba(255,255,255,.05) 0 1px, transparent 1px 30px);
+    border-radius:8px; padding:4px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.05); }
+  .series{ display:grid; grid-template-columns:repeat(26,22px); grid-template-rows:repeat(13,30px); gap:0; }
+  .pairs{  display:grid; grid-template-columns:repeat(6,22px);  grid-template-rows:repeat(13,30px); gap:0; }
+
+  /* center column: indicator / deck / mode */
+  .center-col{ display:flex; flex-direction:column; gap:10px; align-items:center; }
+  .pill{ font-family:"Space Grotesk",sans-serif; font-size:11px; letter-spacing:.6px;
+    color:var(--on-felt); background:rgba(0,0,0,.22); border:1px solid rgba(255,255,255,.08);
+    padding:4px 8px; border-radius:999px; text-align:center; }
+  .modes{ display:flex; flex-direction:column; gap:5px; align-items:center; }
+  .chip{ font-family:Inter,sans-serif; font-size:11px; font-weight:600; letter-spacing:.3px;
+    color:var(--on-felt); background:rgba(0,0,0,.26); border:1px solid rgba(217,164,65,.4);
+    padding:4px 11px; border-radius:999px; }
+  .score-badge{ font-family:"Space Grotesk"; font-weight:700; font-size:21px; color:#1c1c1c;
+    background:linear-gradient(160deg,var(--brass-soft),var(--brass));
+    padding:5px 18px; border-radius:999px; box-shadow:0 3px 12px rgba(217,164,65,.45);
+    line-height:1.1; }
+  .deck{ width:40px; height:56px; border-radius:7px; position:relative;
+    background:var(--tile);
+    box-shadow:2px 2px 0 rgba(0,0,0,.18), 4px 4px 0 rgba(0,0,0,.12), 6px 8px 14px rgba(0,0,0,.45);
+    display:grid; place-items:center; font-family:"Space Grotesk"; font-weight:700;
+    color:rgba(40,40,40,.45); }
+
+  /* tile */
+  /* real okey tile: number in the upper area, round finger-hollow at the bottom */
+  .tile{ width:21px; height:27px; border-radius:5px; position:relative;
+    display:flex; align-items:center; justify-content:center; padding-bottom:5px;
+    font-family:"Rubik",sans-serif; font-weight:800; font-size:14px; line-height:1;
+    background:linear-gradient(158deg,#fdf9ef 0%,#f2e9d6 70%,#e9dec6 100%);
+    color:#222; border:1px solid #ddd1b6;
+    box-shadow:inset 0 1.5px 1.5px rgba(255,255,255,.95), inset 0 -1.5px 2px rgba(120,96,52,.12),
+               0 2px 3px rgba(0,0,0,.3); }
+  .tile::after{ content:""; position:absolute; left:50%; bottom:9%; transform:translateX(-50%);
+    width:30%; aspect-ratio:1; border-radius:50%;
+    background:radial-gradient(circle at 50% 40%, rgba(86,66,38,.20), rgba(86,66,38,.06) 60%, transparent 74%);
+    box-shadow:inset 0 1px 1px rgba(0,0,0,.2), inset 0 -1px 1px rgba(255,255,255,.8); }
+  .tile.c-red{ color:#c2342b; } .tile.c-black{ color:#23262b; }
+  .tile.c-blue{ color:#1f6fb2; } .tile.c-yellow{ color:#d8901a; }
+  .tile.back{ background:linear-gradient(135deg,#6b4f2a,#4a3517); color:transparent; border-color:#3a2912; }
+  .tile.back::after{ display:none; }
+  .tile.ok{ box-shadow:inset 0 1.5px 1.5px rgba(255,255,255,.95), 0 0 0 2px var(--brass), 0 0 9px var(--brass); }
+
+  /* discard piles at the 4 corners (between adjacent players) */
+  .discard{ position:absolute; display:flex; gap:3px; padding:6px; border-radius:10px;
+    background:rgba(0,0,0,.20); box-shadow:inset 0 0 0 1px rgba(255,255,255,.05); }
+  .discard .tile{ width:30px; height:42px; font-size:18px; }
+  .d-tl{ top:62px; left:18px; } .d-tr{ top:62px; right:18px; }
+  .d-bl{ bottom:62px; left:18px; } .d-br{ bottom:62px; right:18px; }
+
+  /* ---------- image-backed rack (Stitch render as background, tiles overlaid) ---------- */
+  .rack-img{ position:relative; width:1000px; max-width:100%; margin:10px auto 0; aspect-ratio:946/167;
+    container-type:inline-size;
+    background:url(/okey-rack.png) center/100% 100% no-repeat;
+    filter:drop-shadow(0 14px 20px rgba(0,0,0,.5)); }
+  /* the two channels: rest on the (equalized) shelf rails ~47% / ~90%.
+     Tiles are sized in cqw (% of rack width) so 16 always fit and they scale with the rack. */
+  .tier{ position:absolute; display:flex; align-items:flex-end; justify-content:center; gap:0.1cqw; }
+  .tier-top{ left:5.5%; right:5.5%; bottom:53.3%; }
+  .tier-bot{ left:5.5%; right:5.5%; bottom:9.6%; }
+  .tier .tile{ box-sizing:border-box; flex:0 0 auto; width:5.3cqw; height:7.3cqw; border-radius:1cqw;
+    align-items:flex-start; justify-content:center; padding:1cqw 0 0; line-height:1; font-size:3.1cqw;
+    box-shadow:inset 0 1.5px 1.5px rgba(255,255,255,.95), inset 0 -1.5px 2px rgba(120,96,52,.14),
+               0 3px 5px rgba(0,0,0,.4); }
+  .tier .tile::after{ bottom:10%; width:26%; }
+  .tier .gap{ width:0.5cqw; height:1px; flex:0 0 auto; }
+
+  .rackcol{ display:flex; flex-direction:column; align-items:stretch; }
+  .rack-top{ width:760px; max-width:100%; margin:0 auto; display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+  .rack-count{ font-family:"Space Grotesk"; font-weight:700; font-size:15px; color:#fff8e6;
+    background:rgba(0,0,0,.3); padding:3px 12px; border-radius:999px; }
+
+  /* ---------- action buttons ---------- */
+  .actions{ margin-top:14px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btn{ font-family:Inter,sans-serif; font-weight:600; font-size:13.5px; cursor:pointer;
+    color:var(--on-felt); background:var(--btn); border:1px solid var(--btn-border);
+    padding:10px 16px; border-radius:11px; box-shadow:0 2px 6px rgba(0,0,0,.25);
+    transition:transform .06s ease; }
+  .btn:hover{ transform:translateY(-1px); }
+  .btn .k{ display:block; font-size:10px; color:var(--muted); font-weight:600; letter-spacing:.4px; }
+  .btn.primary{ background:linear-gradient(160deg,var(--brass-soft),var(--brass));
+    color:#1c1c1c; border-color:transparent; box-shadow:0 4px 12px rgba(217,164,65,.35); }
+  .btn.danger{ background:linear-gradient(160deg,#e07a63,#c14a35); color:#fff; border-color:transparent; }
+  .spacer{ flex:1; }
+  .drag-hint{ font-size:12px; color:var(--muted); font-style:italic; }
+
+  /* ---------- scoreboard ---------- */
+  .score{ background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
+    padding:14px; color:var(--on-panel); box-shadow:0 14px 30px rgba(0,0,0,.35); }
+  .score h2{ font-family:"Space Grotesk"; font-size:13px; letter-spacing:1.2px; text-transform:uppercase;
+    margin:0 0 2px; }
+  .score .sub{ font-size:12px; color:var(--muted); margin-bottom:12px; }
+  .score .pl{ display:flex; align-items:center; gap:10px; padding:9px 8px; border-radius:10px; }
+  .score .pl + .pl{ margin-top:2px; }
+  .score .pl.lead{ background:linear-gradient(90deg, color-mix(in srgb,var(--brass) 22%, transparent), transparent); }
+  .score .dot{ width:28px; height:28px; border-radius:50%; display:grid; place-items:center;
+    font-family:"Space Grotesk"; font-weight:700; font-size:12px; color:#1d1d1d;
+    background:linear-gradient(145deg,var(--brass-soft),var(--brass)); }
+  .score .pn{ font-weight:600; font-size:14px; flex:1; }
+  .score .pv{ font-family:"Space Grotesk"; font-weight:700; font-size:16px; }
+  .score .pv.neg{ color:#3fae6b; }
+  .score .foot{ margin-top:12px; font-size:12px; color:var(--muted); display:flex; justify-content:space-between; }
+
+  /* right column: action panel (when it's your turn) + scoreboard */
+  .rightcol{ display:flex; flex-direction:column; gap:14px; }
+  .panel{ background:var(--panel); border:1px solid var(--panel-border); border-radius:16px;
+    padding:12px; display:flex; flex-direction:column; gap:9px; box-shadow:0 14px 30px rgba(0,0,0,.35); }
+  .panel h2{ font-family:"Space Grotesk"; font-size:12px; letter-spacing:1.2px; text-transform:uppercase;
+    color:var(--muted); margin:0 0 3px; }
+  .abtn{ font-family:Inter,sans-serif; font-weight:600; font-size:14px; cursor:pointer; text-align:left;
+    color:var(--on-panel); background:var(--btn); border:1px solid var(--btn-border);
+    padding:12px 13px; border-radius:12px; display:flex; align-items:center; gap:11px;
+    transition:transform .06s ease, box-shadow .15s ease; }
+  .abtn:hover{ transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.3); }
+  .abtn.primary{ background:linear-gradient(160deg,var(--brass-soft),var(--brass)); color:#1c1c1c;
+    border-color:transparent; box-shadow:0 4px 12px rgba(217,164,65,.3); }
+  .abtn .ic{ width:26px; height:26px; border-radius:7px; display:grid; place-items:center; font-size:13px;
+    background:rgba(0,0,0,.16); box-shadow:inset 0 0 0 1px rgba(255,255,255,.08); }
+  .abtn.primary .ic{ background:rgba(0,0,0,.12); }
+  .abtn .sub{ margin-left:auto; font-family:"Space Grotesk"; font-size:12px; opacity:.7; }
+  .abtn.ghost{ background:transparent; border-style:dashed; }
+
+  /* arrange helpers flanking the rack */
+  .rackwrap{ margin-top:18px; display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:stretch; }
+  .hbtn{ font-family:Inter,sans-serif; font-weight:600; font-size:12.5px; cursor:pointer; writing-mode:sideways-lr;
+    color:var(--on-felt); background:var(--btn); border:1px solid var(--btn-border); border-radius:12px;
+    padding:10px 8px; box-shadow:0 2px 6px rgba(0,0,0,.25); }
+  .legend{ max-width:1180px; margin:14px auto 0; color:#8aa097; font-size:12.5px; line-height:1.6; }
+</style>
+</head>
+<body data-theme="kiraathane">
+
+  <div class="topbar">
+    <h1>Okey 101 · Masa Tasarımı</h1>
+    <span class="hint">3 görsel yön — birini seç, ona göre kurarım</span>
+    <div class="themes">
+      <button data-t="kiraathane" class="active">Modern Kıraathane</button>
+      <button data-t="gece">Gece Masası</button>
+      <button data-t="studio">Aydınlık Stüdyo</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="felt">
+        <!-- discard piles at the 4 corners (atan oyuncunun sağında) -->
+        <div class="discard d-tl"><div class="tile c-blue">5</div></div>
+        <div class="discard d-tr"><div class="tile c-red">11</div></div>
+        <div class="discard d-bl"><div class="tile c-black">7</div></div>
+        <div class="discard d-br"><div class="tile c-yellow">3</div></div>
+
+        <!-- top bot -->
+        <div class="row-top">
+          <div class="seat"><div class="ava">UM</div><div class="name">Umut</div><div class="opened" data-score="135"></div></div>
+        </div>
+
+        <div class="row-mid">
+          <!-- left bot -->
+          <div class="side"><div class="seat"><div class="ava">SE</div><div class="name">Sema</div><div class="opened" data-score="110"></div></div></div>
+
+          <!-- boards -->
+          <div class="boards">
+            <!-- series opening requirement (left of the series board): 101 in Eşsiz; in Katlamalı it
+                 rises to (highest opened)+1 once someone opens -->
+            <div class="open-need series-need">
+              <div class="need-num"><span class="minitile">1</span><span class="minitile">0</span><span class="minitile">1</span></div>
+              <div class="need-arrow">→</div>
+            </div>
+            <div>
+              <div class="series" id="series"></div>
+            </div>
+            <div class="center-col">
+              <div class="tile ok" style="width:42px;height:58px;font-size:21px">12</div>
+              <div class="deck">38</div>
+              <div class="modes">
+                <span class="chip">Eşsiz</span>
+                <span class="chip">Katlamalı</span>
+                <span class="chip">Destekli</span>
+              </div>
+            </div>
+            <div>
+              <div class="pairs" id="pairs"></div>
+            </div>
+            <!-- pairs opening requirement (right of the pairs board): 5 in Eşsiz; in Katlamalı it
+                 rises to 6 once a player opens with 5 pairs -->
+            <div class="open-need pairs-need">
+              <div class="need-arrow">←</div>
+              <div class="need-num"><span class="minitile">5</span></div>
+            </div>
+          </div>
+
+          <!-- right bot -->
+          <div class="side"><div class="seat active"><div class="ava">KE</div><div class="name">Kerem ▶</div><div class="opened" data-score="101"></div></div></div>
+        </div>
+      </div>
+
+      <!-- rack + arrange helpers (Diz) flanking it -->
+      <div class="rackwrap">
+        <button class="hbtn">Çift Diz</button>
+        <div class="rackcol">
+          <div class="rack-top">
+            <div class="seat" style="flex-direction:row;gap:8px;align-items:center">
+              <div class="ava" style="width:34px;height:34px;font-size:13px">BE</div>
+              <div><div class="name">Sen</div><div class="opened" data-score="122"></div></div>
+            </div>
+            <div class="score-badge">−142</div>
+          </div>
+          <div class="rack-img">
+            <div class="tier tier-top" id="tierTop"></div>
+            <div class="tier tier-bot" id="tierBot"></div>
+          </div>
+        </div>
+        <button class="hbtn">Seri Diz</button>
+      </div>
+
+      <div class="drag-hint" style="margin-top:10px">Taşı sürükle: deste→çek · komşu→al · çöpe→at · masaya→işle</div>
+    </div>
+
+    <!-- right column: scoreboard on top, action panel below -->
+    <div class="rightcol">
+      <div class="score">
+      <h2>Skor</h2>
+      <div class="sub">El 3 / 11 · Eşsiz</div>
+      <div class="pl lead"><div class="dot">BE</div><div class="pn">Sen</div><div class="pv neg">−142</div></div>
+      <div class="pl"><div class="dot">SE</div><div class="pn">Sema</div><div class="pv">88</div></div>
+      <div class="pl"><div class="dot">UM</div><div class="pn">Umut</div><div class="pv">203</div></div>
+      <div class="pl"><div class="dot">KE</div><div class="pn">Kerem</div><div class="pv">156</div></div>
+      <div class="foot"><span>Lider: Sen</span></div>
+      </div>
+      <div class="panel">
+        <button class="abtn primary"><span class="ic">▦</span> Seri Aç <span class="sub">101</span></button>
+        <button class="abtn"><span class="ic">◫</span> Çift Aç <span class="sub">5</span></button>
+        <button class="abtn"><span class="ic">↺</span> Geri Topla</button>
+        <button class="abtn"><span class="ic">⤵</span> Taşları İşle</button>
+      </div>
+    </div>
+  </div>
+
+  <p class="legend">
+    Not: Bu sadece <b>görsel yön</b> mockup'ı (statik). Düzen senin 7 maddene göre:
+    botlar sol/üst/sağ · seri tahtası değer-hizalı (8-9-10 → 8. kareden) · sağında gösterge/deste/mod ·
+    çift tahtası 6×13 · 3B 2 katlı ıstaka (boş yuva yok) · atışlar köşelerde · modern buton + skor kartı.
+  </p>
+
+<script>
+  // --- build sample series melds at value offsets (col = value) ---
+  const series = document.getElementById('series');
+  function tile(val,color){ const d=document.createElement('div'); d.className='tile c-'+color; d.textContent=val; return d; }
+  function place(grid, row, startCol, vals, color){
+    vals.forEach((v,i)=>{ const t=tile(v,color); t.style.gridRow=row; t.style.gridColumn=(startCol+i); grid.appendChild(t); });
+  }
+  // owner 1 (üst): yellow 8-9-10-11 başlar 8. kareden
+  place(series,1,8,[8,9,10,11],'yellow');
+  // owner 1: black set 5-5-5 at col 5
+  place(series,2,5,['5','5','5'],'black');
+  // owner 2 (sol): blue run 2-3-4-5-6 at col 2
+  place(series,4,2,[2,3,4,5,6],'blue');
+  // owner 3 (sağ): red run wraps: 10-11-12-13 then continues to second half (14=1.. )
+  place(series,6,10,[10,11,12,13],'red');
+  place(series,6,14,['1'],'red'); // sağ yarıya taşma örneği (kapanış 1)
+  // sen: yellow 1-2-3 at col 1
+  place(series,8,1,[1,2,3],'yellow');
+
+  // --- pairs board ---
+  const pairs=document.getElementById('pairs');
+  function pair(row,a,b,c){ const t1=tile(a,c),t2=tile(b,c); t1.style.gridRow=row;t1.style.gridColumn=1;t2.style.gridRow=row;t2.style.gridColumn=2; pairs.appendChild(t1);pairs.appendChild(t2); }
+  pair(1,'8','8','red'); pair(2,'11','11','blue'); pair(3,'4','4','black'); pair(4,'9','9','yellow');
+
+  // --- rack tiles (two tiers, gaps separate groups, no empty cells shown) ---
+  const tierTopEl=document.getElementById('tierTop'), tierBotEl=document.getElementById('tierBot');
+  function rackTile(v,c,extra){ const d=tile(v,c); if(extra) d.classList.add(extra); return d; }
+  function gap(t){ const g=document.createElement('div'); g.className='gap'; t.appendChild(g); }
+  // top tier: 16 tiles (capacity check) with a couple of group gaps + an okey
+  const cols=['red','blue','black','yellow'];
+  [['6','red'],['7','red'],['8','red']].forEach(([v,c])=>tierTopEl.appendChild(rackTile(v,c)));
+  gap(tierTopEl);
+  [['9','blue'],['9','black'],['9','yellow']].forEach(([v,c])=>tierTopEl.appendChild(rackTile(v,c)));
+  gap(tierTopEl);
+  [['11','blue'],['12','blue'],['13','blue']].forEach(([v,c])=>tierTopEl.appendChild(rackTile(v,c)));
+  gap(tierTopEl);
+  tierTopEl.appendChild(rackTile('12','red','ok')); // okey örneği
+  [['2','black'],['5','yellow'],['3','red'],['7','black'],['10','yellow'],['1','blue']]
+    .forEach(([v,c])=>tierTopEl.appendChild(rackTile(v,c))); // -> 16 total
+  // bottom tier: 16 tiles
+  [['1','red'],['2','red'],['3','red']].forEach(([v,c])=>tierBotEl.appendChild(rackTile(v,c)));
+  gap(tierBotEl);
+  [['10','yellow'],['11','yellow'],['12','yellow'],['13','yellow']].forEach(([v,c])=>tierBotEl.appendChild(rackTile(v,c)));
+  gap(tierBotEl);
+  [['7','blue'],['8','blue'],['9','blue']].forEach(([v,c])=>tierBotEl.appendChild(rackTile(v,c)));
+  gap(tierBotEl);
+  [['4','black'],['6','black'],['2','yellow'],['5','red'],['13','red'],['1','black']]
+    .forEach(([v,c])=>tierBotEl.appendChild(rackTile(v,c))); // -> 16 total
+
+  // --- opening scores as red okey tiles (e.g. 135 -> 1 3 5) ---
+  document.querySelectorAll('.opened[data-score]').forEach(el=>{
+    el.dataset.score.split('').forEach(d=>{ const t=document.createElement('div'); t.className='minitile'; t.textContent=d; el.appendChild(t); });
+  });
+
+  // --- theme switch ---
+  document.querySelectorAll('.themes button').forEach(b=>{
+    b.onclick=()=>{ document.body.dataset.theme=b.dataset.t;
+      document.querySelectorAll('.themes button').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); };
+  });
+</script>
+</body>
+</html>

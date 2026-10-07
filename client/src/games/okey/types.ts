@@ -35,6 +35,7 @@ export interface PublicPlayer {
   opened: boolean;
   openMode: "melds" | "pairs" | null;
   pairCount: number;
+  openScore: number;
   handCount: number;
   lastDiscard: OkeyTile | null;
 }
@@ -50,6 +51,9 @@ export interface OkeyPlayerView {
   drawPileCount: number;
   players: PublicPlayer[];
   tableMelds: TableMeld[];
+  meldOpenNeed: number;
+  pairOpenNeed: number;
+  canUndoTurn: boolean;
   status: "playing" | "finished";
   outcome: HandOutcome | null;
 }
@@ -78,6 +82,8 @@ export type Move =
   | { kind: "openPairs"; pairs: OkeyTile[][] }
   | { kind: "openNewMeld"; tiles: OkeyTile[] }
   | { kind: "processToMeld"; meldId: string; tiles: OkeyTile[] }
+  | { kind: "autoProcess" }
+  | { kind: "undoTurn" }
   | { kind: "swapOkey"; meldId: string; tile: OkeyTile }
   | { kind: "discard"; tile: OkeyTile };
 export interface StartGameConfig {
